@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name        Snahp IMDB Poster
-// @version     1.0.0
+// @version     1.0.1
 // @description Template Maker
 // @author      BiliTheBox
-// @include     /^https:\/\/forum\.snahp\.it\/posting\.php\?mode\=post\&f\=(42|55|26|29|66|30|88|56|72|73|64|31|32|65|84|33|61|62|57|74|75)\/
+// @include     /^https?:\/\/forum\.snahp\.it\/posting\.php\?mode\=post\&f\=(42|55|26|29|66|30|88|56|72|73|64|31|32|65|84|33|61|62|57|74|75)/
 // @require     https://code.jquery.com/jquery-3.4.1.min.js
 // @require     https://code.jquery.com/ui/1.12.1/jquery-ui.js
 // @require     https://raw.githubusercontent.com/Semantic-Org/UI-Search/master/search.js
