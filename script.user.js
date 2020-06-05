@@ -1,35 +1,52 @@
 // ==UserScript==
-// @name        Snahp IMDB Poster
-// @version     1.0.1
-// @description Template Maker
+// @name        Snahp Android Template Generator
+// @version     1.0.0
+// @description Generates a Template for the Android section of Forum.Snahp.it
 // @author      BiliTheBox
-// @include     /^https?:\/\/forum\.snahp\.it\/posting\.php\?mode\=post\&f\=(42|55|26|29|66|30|88|56|72|73|64|31|32|65|84|33|61|62|57|74|75)/
-// @require     https://code.jquery.com/jquery-3.4.1.min.js
-// @require     https://code.jquery.com/ui/1.12.1/jquery-ui.js
-// @require     https://raw.githubusercontent.com/Semantic-Org/UI-Search/master/search.js
-// @require     https://raw.githubusercontent.com/Semantic-Org/UI-Api/master/api.js
+// @icon        https://forum.snahp.it/favicon.ico
+// @homepage    https://github.com/Bilibox/Snahp-Template-Generators/
+// @supportURL  https://github.com/Bilibox/Snahp-Template-Generators/issues/
+// @updateURL   https://github.com/Bilibox/Snahp-Template-Generators/raw/Android/script.user.js
+// @downloadURL https://github.com/Bilibox/Snahp-Template-Generators/raw/Android/script.user.js
+// @include     /^https?:\/\/forum\.snahp\.it\/posting\.php\?mode\=post\&f\=(47)/
+// @require     https://code.jquery.com/jquery-3.5.1.min.js
 // @grant       GM_addStyle
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
-// @grant       GM.setValue
-// @grant       GM.getValue
+// @run-at      document-end
 // ==/UserScript==
 
-main();
-
 const htmlTemplate = `
-<button id="gmShowTemplate" name="templateButton" style="display:none" type="button">Show</button>
-<dr style="clear: left;" id="OmdbGenerator">
-<dt> <label id="imdbsearch" for="SemanticSearch">Imdb Search:</label> </dt>
-<dd> <input type="text" id="hiddenIID" value="" style="display:none">
-<div class="ui search" id="searchBox" size="45">
-<input type="text" class="prompt inputbox autowidth" id="searchID" size="45" placeholder="IMDB ID, Title, or Link"></input>
-<div class="results inputbox" id="search_results" size="45" style="display:none;"></div> </dd>
-<dt> <label id="screenfill" for="Screenlinks">Screenshot Links:</label> </dt>
-<dd> <input type="text" id="screensLinks" value="" class="inputbox autowidth" size="45"></input> </dd>
-<dt> <label id="mediaInf" for="fileMediainfo">Mediainfo:</label> </dt>
-<dd> <textarea rows="1" style="width:100%;" class="inputbox autowidth" id="mediaInfo" size="45"></textarea> </dd>
+<button class="button--primary button button--icon" id="gmShowTemplate" name="templateButton" style="display:none" type="button">Show</button>
+<dr style="clear: left;" id="ApkGenerator">
+<dt> <label id="GPSlink" for="GooglePlayLink">Play Store Link:</label> </dt>
+<dd> <input type="text" id="gplaylink" value="" class="inputbox autowidth" size="45" placeholder="Google Play Store Link"></input> </dd>
+<dt> <label id="modsinfo" for="ModificationInformation">Mod Info:</label> </dt>
+<dd> <textarea rows="1" style="width:100%;" class="inputbox autowidth" id="modinfo" size="45" placeholder="Mod Details"></textarea> </dd>
+<dt> <label id="VT" for="VirusTotalLink">VirusTotal Link:</label> </dt>
+<dd> <input type="text" id="virustotal" value="" class="inputbox autowidth" size="45" placeholder="VirusTotal Link"></input> </dd>
 <dt><label> </label></dt>
+<dd>
+<span>Mod</span>
+<label class="switch">
+<input type="checkbox" id="mod" value="mod" >
+<span class="slider round"></span></label>
+<span>Unlocked</span>
+<label class="switch">
+<input type="checkbox" id="unlocked" value="unlocked" >
+<span class="slider round"></span></label>
+<span>Premium</span>
+<label class="switch">
+<input type="checkbox" id="premium" value="premium" >
+<span class="slider round"></span></label>
+<span>Ad-Free</span>
+<label class="switch">
+<input type="checkbox" id="adfree" value="adfree" >
+<span class="slider round"></span></label>
+<span>Lite</span>
+<label class="switch">
+<input type="checkbox" id="lite" value="lite" >
+</dd>
 <dd>
 <button class="button--primary button button--icon" id="gmGenerate" name="templateButton" type="button">Generate Template</button>
 &nbsp;
@@ -41,240 +58,268 @@ const htmlTemplate = `
 </dr>
 `;
 
-const omdbinput = `
-<button id="gmShowTemplate" name="templateButton" style="display:none" type="button">Show</button>
-<dr style="clear: left;" id="OmdbGenerator">
-<dt>
-<label id="Keylabel" for="omdbapi">OMDB Key:</label>
-</dt>
-<dd>
-<input type="text" id="omdbKey" value="" class="inputbox autowidth"/>
-<button class="button--primary button button--icon" id="gmSaveKey" name="templateButton" type="button">Save Key</button>
-&nbsp;
-<button class="button--primary button button--icon" id="gmClearBtn" name="templateButton" type="reset">Clear</button>
-&nbsp;
-<button class="button--primary button button--icon" id="gmHideTemplate" name="templateButton" type="button">Hide</button>
-&nbsp;
-</dd>
-</dr>
-`;
+var errPopup = `<div class="overlay-container is-active" name='errorpopup' id="js-XFUniqueId2"><div class="overlay" tabindex="-1" role="alertdialog" id="errBox" aria-hidden="false">
+<div class="overlay-title">
+<a class="overlay-titleCloser js-overlayClose" role="button" tabindex="0" aria-label="Close"></a>
+Oops! We ran into some problems.</div>
+<div class="overlay-content">
+<div class="blockMessage">
+<ul>
+errormessages
+</ul>
+</div></div></div></div>`;
+// Run the Main function
+main();
 
+// Main function that runs the script
 function main() {
-	GM.getValue('APIKEY', 'foo').then(value => {
-		var tabURL = window.location.href;
-		if (tabURL.includes('preview')) {
-			return;
-		}
-		var APIVALUE = value;
-		const htmlpush = document.getElementsByTagName('dl')[0];
-		const titlechange = document.getElementById('title');
-		htmlpush.innerHTML += APIVALUE !== 'foo' ? htmlTemplate : omdbinput;
-		if (titlechange) {
-			document.getElementById('title').className += 'input';
-		}
-		sectionSearch(APIVALUE, tabURL);
-		$(document).on('keydown', function(event) {
-			if (event.key == 'Escape') {
-				$('#OmdbGenerator').hide();
-				document.getElementById('gmShowTemplate').style.display = 'block';
-			}
-		});
-		$('#gmHideTemplate').click(() => hideTemplate());
-		$('#gmShowTemplate').click(() => showTemplate());
-		$('#gmSaveKey').click(() => saveApiKey(APIVALUE, htmlpush));
-		$('#gmGenerate').click(() => generateTemplate(APIVALUE));
-	});
+	if (window.location.href.includes('preview')) {
+		return;
+	}
+	var temphtml = document.getElementsByTagName('dl')[0]; // Grab div under the inputs
+	temphtml.innerHTML += htmlTemplate; // Place our HTML under the inputs
+	var titlechange = document.getElementsByName('title')[0]; // Grab "Title" bar from HTML
+	if (titlechange) {
+		titlechange.className += 'input'; // Change title to less boldness using different class
+	}
+	$('#gmHideTemplate').click(() => hideTemplate()); // When Hide button clicked, run hide function
+	$('#gmShowTemplate').click(() => showTemplate()); // When Show button clicked, run Show function
+	$('#gmGenerate').click(() => generateTemplate()); // When Generate button clicked, run Generate function
 }
 
+// Close Error Popup if overlay clicked
+$(document).click(function (e) {
+	if (
+		(!$('#errBox').is(e.target) & $('#js-XFUniqueId2').is(e.target)) |
+		$('.js-overlayClose').is(e.target)
+	) {
+		document.getElementsByName('errorpopup')[0].remove();
+	}
+});
+
+// Add Hotkey "Escape" to Hide fields
+$(document).on('keydown', function (event) {
+	if (event.key == 'Escape') {
+		$('#ApkGenerator').hide();
+		document.getElementById('gmShowTemplate').style.display = 'block';
+	}
+});
+
+// Show Template HTML and hide "Show" button
 function showTemplate() {
 	document.getElementById('gmShowTemplate').style.display = 'none';
-	$('#OmdbGenerator').show();
-}
-function hideTemplate() {
-	document.getElementById('gmShowTemplate').style.display = 'block';
-	$('#OmdbGenerator').hide();
+	$('#ApkGenerator').show();
 }
 
-function sectionSearch(APIVALUE, tabURL) {
-	var sectionCheck = tabURL.match(/\d+/, '');
-	var Movies = '26 29 30 42 55 56 66 72 73 88';
-	var Series = '31 32 33 57 61 62 64 65 74 75 84';
-	var query;
-	if (Series.includes(sectionCheck)) {
-		query = `https://www.omdbapi.com/?apikey=${APIVALUE}&r=JSON&s={query}&type=series`;
-	} else if (Movies.includes(sectionCheck)) {
-		query = `https://www.omdbapi.com/?apikey=${APIVALUE}&r=JSON&s={query}&type=movie`;
-	} else {
-		query = `https://www.omdbapi.com/?apikey=${APIVALUE}&r=JSON&s={query}`;
-	}
-	$('#searchBox').search({
-		type: 'category',
-		apiSettings: {
-			url: query,
-			onResponse: function(myfunc) {
-				var response = {
-					results: {}
-				};
-				$.each(myfunc.Search, function(index, item) {
-					var category = item.Type.toUpperCase() || 'Unknown',
-						maxResults = 10;
-					if (index >= maxResults) {
-						return false;
-					}
-					if (response.results[category] === undefined) {
-						response.results[category] = {
-							name: '~~~~~~~~~~' + category + '~~~~~~~~~~',
-							results: []
-						};
-					}
-					var Name = item.Title + ' (' + item.Year + ')';
-					response.results[category].results.push({
-						title: Name,
-						description: Name,
-						imdbID: item.imdbID
-					});
-				});
-				return response;
-			}
-		},
-		fields: {
-			results: 'results',
-			title: 'name'
-		},
-		onSelect: function(response) {
-			$('#hiddenIID').val(response.imdbID);
-			$('#searchID').val(response.title);
-		},
-		minCharacters: 3
+// Hide Template HTML and unhide "Show" button
+function hideTemplate() {
+	document.getElementById('gmShowTemplate').style.display = 'block';
+	$('#ApkGenerator').hide();
+}
+
+// Popup for Errors
+function Popup(errors) {
+	let errOutput = errPopup.replace('errormessages', errors);
+	var body = document.getElementsByTagName('Body')[0];
+	body.insertAdjacentHTML('beforeend', errOutput);
+}
+
+// Grab Specific divs
+function filterSize(element) {
+	return element.textContent === 'Size'; // Return div holding text "Size"
+}
+function filterCurVer(element) {
+	return element.textContent === 'Current Version'; // Return div holding text "Current Version"
+}
+function filterReqAndr(element) {
+	return element.textContent === 'Requires Android'; // Return div holding text "Requires Android"
+}
+
+/*fix word casing*/
+function upperCase(str) {
+	str = str.toLowerCase(); // First make entire string lowercase
+	return str.replace(/(^|\s)\S/g, function (t) {
+		// Return Uppercase for every word in String
+		return t.toUpperCase();
 	});
 }
 
-function saveApiKey(APIVALUE, htmlpush) {
-	if (APIVALUE == 'foo') {
-		let omdbKey = $('#omdbKey').val();
-		if (omdbKey) {
-			GM.setValue('APIKEY', omdbKey);
-		} else {
-			alert("You Didn't Enter Your Key!!");
-		}
-		document.getElementById('OmdbGenerator').remove();
-		document.getElementById('gmShowTemplate').remove();
-		main();
-	}
-}
-
-function generateTemplate(APIVALUE) {
-	var IID = $('#hiddenIID').val();
-	var screenshots = $('#screensLinks').val();
-	var uToob = $('#ytLink').val();
-	var MEDIAINFO = $('#mediaInfo').val();
-	if (!IID) {
-		IID = $('#searchID').val();
-		if (IID.includes('imdb')) {
-			IID = IID.match(/tt\d+/)[0];
-		}
-	}
-	if (!IID) {
-		alert("You Didn't Select A Title or Enter a IMDB ID!");
+function generateTemplate() {
+	// Create variables from HTML
+	let [link, modinfo, VT, mod, unlocked, adfree, lite, premium] = [
+		$('#gplaylink').val(),
+		$('#modinfo').val(),
+		$('#virustotal').val(),
+		document.querySelector('input[value="mod"]'),
+		document.querySelector('input[value="unlocked"]'),
+		document.querySelector('input[value="adfree"]'),
+		document.querySelector('input[value="lite"]'),
+		document.querySelector('input[value="premium"]'),
+	];
+	// Error Messages for required fields
+	if (!link | !VT) {
+		var errors = '';
+		errors += !link ? '<li>No Google Play link Found!</li>' : '';
+		errors += !VT ? '<li>No Virustotal Found!</li>' : '';
+		Popup(errors);
 	} else {
-		if (screenshots) {
-			screenshots = screenshots.split(' ');
-			var screen = `\n[hr][/hr][size=150][color=#fac51c][b]Screenshots[/b][/color][/size]\n\n`;
-			for (let ss of screenshots) {
-				screen += `[img]${ss}[/img]`;
-			}
-			screen += `\n`;
-		} else {
-			screen = '';
+		link = link.includes('&hl')
+			? link.replace(/\&.*$/, '&hl=en_US')
+			: link + '&hl=en_US';
+
+		// Split VT links 1 per line
+		let vtsplit = VT.split(' ');
+		VT = '';
+		counter = 0;
+		for (let vts of vtsplit) {
+			counter += 1;
+			VT += `[url=${vts}][size=150][color=#40BFFF][B] ${counter} VirusTotal[/B][/color][/size][/url]\n`;
 		}
+		// Check for pressed buttons
+		mod = mod.checked ? ' [Mod]' : '';
+		unlocked = unlocked.checked ? ' [Unlocked]' : '';
+		adfree = adfree.checked ? ' [Ad-Free]' : '';
+		premium = premium.checked ? ' [Premium]' : '';
+		lite = lite.checked ? ' [Lite]' : '';
+		var titleExtra = mod + unlocked + premium + adfree + lite;
+		// Get GPS page & details for post
 		GM_xmlhttpRequest({
 			method: 'GET',
-			url: `http://www.omdbapi.com/?apikey=${APIVALUE}&i=${IID}&plot=full&y&r=json`,
-			onload: function(response) {
-				let json = JSON.parse(response.responseText);
-				let poster =
-					json.Poster && json.Poster !== 'N/A'
-						? '[center][img]' + json.Poster + '[/img]\n'
-						: '';
-				if (json.Title && json.Title !== 'N/A') {
-					var title = '[color=#fac51c][b][size=150]' + json.Title;
-				} else {
-					alert(
-						"You Messed Up! Check That You've Entered Something Into The IMDB Field!"
-					);
+			url: link,
+			onload: function (response) {
+				let [page, parser] = [response.responseText, new DOMParser()];
+				let parsedHtml = parser.parseFromString(page, 'text/html');
+				// Grab json from parse
+				var gplayjson = parsedHtml.querySelector(
+					'script[type="application/ld+json"]'
+				).text;
+				gplayjson = JSON.parse(gplayjson);
+				// Turn nodelist into an array
+				var h2 = Array.prototype.slice.call(parsedHtml.querySelectorAll('div'));
+				// Array of matches
+				// Filter Function
+				var [siz, curVer, reqAndr] = [
+					h2.filter(filterSize),
+					h2.filter(filterCurVer),
+					h2.filter(filterReqAndr),
+				];
+				// Grab all images & find logo
+				let images = parsedHtml.getElementsByTagName('img');
+				for (let logoimg of images) {
+					let logoattr = logoimg.alt;
+					if (logoattr == 'Cover art') {
+						var logo =
+							'[CENTER][fimg=180,180]' +
+							logoimg.srcset.replace('-rw', '').replace(' 2x', '') +
+							'[/fimg]\n\n';
+					}
 				}
-				let year =
-					json.Year && json.Year !== 'N/A'
-						? json.Year + ')[/size][/b][/color]\n'
-						: '';
-				let imdbId =
-					json.imdbID && json.imdbID !== 'N/A'
-						? '[url=https://www.imdb.com/title/' +
-						  json.imdbID +
-						  '][img]https://i.imgur.com/rcSipDw.png[/img][/url]'
-						: '';
-				let rating =
-					json.imdbRating && json.imdbRating !== 'N/A'
-						? '[size=150][b]' + json.imdbRating + '[/b]/10[/size]\n'
-						: '';
-				let imdbvotes =
-					json.imdbVotes && json.imdbVotes !== 'N/A'
-						? '[size=150][img]https://i.imgur.com/sEpKj3O.png[/img]' +
-						  json.imdbVotes +
-						  '[/size][/center]\n'
-						: '';
-				let plot =
-					json.Plot && json.Plot !== 'N/A'
-						? '[hr][/hr][size=150][color=#fac51c][b]Plot[/b][/color][/size]\n\n ' +
-						  json.Plot +
-						  '\n'
-						: '';
-				let rated =
-					json.Rated && json.Rated !== 'N/A'
-						? '[B]Rating: [/B]' + json.Rated + '\n'
-						: '';
-				let genre =
-					json.Genre && json.Genre !== 'N/A'
-						? '[*][B]Genre: [/B] ' + json.Genre + '\n'
-						: '';
-				let director =
-					json.Director && json.Director !== 'N/A'
-						? '[*][B]Directed By: [/B] ' + json.Director + '\n'
-						: '';
-				let writer =
-					json.Writer && json.Writer !== 'N/A'
-						? '[*][B]Written By: [/B] ' + json.Writer + '\n'
-						: '';
-				let actors =
-					json.Actors && json.Actors !== 'N/A'
-						? '[*][B]Starring: [/B] ' + json.Actors + '\n'
-						: '';
-				let released =
-					json.Released && json.Released !== 'N/A'
-						? '[*][B]Release Date: [/B] ' + json.Released + '\n'
-						: '';
-				let runtime =
-					json.Runtime && json.Runtime !== 'N/A'
-						? '[*][B]Runtime: [/B] ' + json.Runtime + '\n'
-						: '';
-				let production =
-					json.Production && json.Production !== 'N/A'
-						? '[*][B]Production: [/B] ' + json.Production + '\n'
-						: '';
-				let mediainf = MEDIAINFO
-					? '[hr][/hr][size=150][color=#fac51c][b]Media Info[/b][/color][/size]\n\n [mediainfo]' +
-					  MEDIAINFO +
-					  '\n[/mediainfo]\n'
+				// App Name
+				let title = gplayjson.name
+					? '[COLOR=rgb(26, 162, 96)][B][size=200]' +
+					  gplayjson.name +
+					  '[/size][/B][/COLOR]\n'
 					: '';
-				let ddl = `[hr][/hr][center][size=150][color=#fac51c][b]Download Link[/b][/color][/size]\n
-[hide][b][url=][color=#FF0000]MEGA[/color][/url]
-[url=][color=#FFFF00]ZippyShare[/color][/url]
-[url=][color=#00FF00]Gdrive[/color][/url]
-[/b][/hide]
-[/center]`;
-				let dump = `${poster}${title} (${year}${imdbId} ${rating}${imdbvotes}${plot}${screen}
-[hr][/hr][size=150][color=#fac51c][b]Movie Info[/b][/color][/size]\n
-[LIST][*]${rated}${genre}${director}${writer}${actors}${released}${runtime}${production}[/LIST]\n${mediainf}${ddl}`;
+				//Review Star Rating
+				try {
+					var rating = gplayjson.aggregateRating.ratingValue
+						? '\n[fimg=50,50]https://i.postimg.cc/g28wfSTs/630px-Green-star-41-108-41-svg.png[/fimg][size=130][B]' +
+						  Math.floor(gplayjson.aggregateRating.ratingValue) +
+						  '/5[/B]'
+						: '';
+				} catch (e) {
+					console.log(e);
+					rating = '';
+				}
+				// Amount of Reviews
+				try {
+					var reviewscount = gplayjson.aggregateRating.ratingCount
+						? '[fimg=50,50]https://i.postimg.cc/nV6RDhJ3/Webp-net-resizeimage-002.png[/fimg]' +
+						  gplayjson.aggregateRating.ratingCount +
+						  '[/size]\n\n'
+						: '';
+				} catch (e) {
+					console.log(e);
+					reviewscount = '';
+				}
+				// Grab SS from images (Only grab 3!)
+				var screenshots = [];
+				for (let screen of images) {
+					let screenattr = screen.alt;
+					if (screenattr == 'Screenshot Image') {
+						if (!screen.dataset | !screen.dataset.srcset) {
+							screenshots.push(
+								screen.srcset.replace('-rw', '').replace(' 2x', '') + '\n'
+							);
+						} else {
+							screenshots.push(
+								screen.dataset.srcset.replace('-rw', '').replace(' 2x', '') +
+									'\n'
+							);
+						}
+					}
+					if (screenshots.length == '3') {
+						break;
+					}
+				}
+				var screens = '';
+				for (let ss of screenshots) {
+					screens += '[fimg=300,500]' + ss + '[/fimg]';
+				}
+				screens =
+					'[size=200][color=rgb(26, 162, 96)][B]Screenshots[/B][/color][/size]\n\n' +
+					screens +
+					'[/center]\n[hr][/hr]\n\n';
+				// Grab App Details from Play Store HTML parse
+				// App Description
+				let description = gplayjson.description
+					? '[size=200][color=rgb(26, 162, 96)][B]App Description[/B][/color][/size]\n\n[code]\n' +
+					  gplayjson.description +
+					  '\n[/code]\n[hr][/hr]\n\n'
+					: '';
+				// Developer Name
+				let dev = gplayjson.author.name
+					? '[size=200][color=rgb(26, 162, 96)][B]App Details[/B][/color][/size]\n[list]\n[*][B]Developer: [/B] ' +
+					  upperCase(gplayjson.author.name)
+					: '';
+				// App Category
+				let category = gplayjson.applicationCategory
+					? '\n[*][B]Category: [/B] ' + upperCase(gplayjson.applicationCategory)
+					: '';
+				// Age Content Rating
+				let ContentRating = gplayjson.contentRating
+					? '\n[*][B]Content Rating: [/B] ' + gplayjson.contentRating
+					: '';
+				// Required Android Version
+				let requiredAndroid = reqAndr[0].nextElementSibling.innerText
+					? '\n[*][B]Required Android Version: [/B] ' +
+					  reqAndr[0].nextElementSibling.innerText
+					: '';
+				// App Size
+				let size = siz[0].nextElementSibling.innerText
+					? '\n[*][B]Size: [/B] ' +
+					  siz[0].nextElementSibling.innerText +
+					  ' (Taken from the Google Play Store)'
+					: '';
+				// Latest Version from the Playstore
+				let LatestPlayStoreVersion = curVer[0].nextElementSibling.innerText
+					? '\n[*][B]Latest Google Play Version: [/B] ' +
+					  curVer[0].nextElementSibling.innerText +
+					  '\n[/LIST]\n'
+					: '';
+				// Add BBCode for "Get this on Google Play Store"
+				link =
+					'[url=' +
+					link +
+					'][fimg=300,115]https://i.postimg.cc/mrWtVGwr/image.png[/fimg][/url]\n\n';
+				// Don't add modinfo line if not needed
+				modinfo = modinfo
+					? `[SIZE=200][COLOR=rgb(26, 162, 96)][B]Mod Info[/B][/COLOR][/SIZE]\n\n${modinfo}\n\n[hr][/hr]\n\n`
+					: '';
+				VT = `[SIZE=200][COLOR=rgb(26, 162, 96)][B]Virustotal[/B][/color][/size]\n\n${VT}\n\n[hr][/hr]\n\n`;
+				ddl = `[size=200][COLOR=rgb(26, 162, 96)][B]Download Link[/B][/COLOR][/SIZE]\n\n[CENTER]\n[hide][b][url=][size=150][color=#FF0000]MEGA[/color][/size][/url]\n[url=][size=150][color=#FFFF00]ZippyShare[/color][/size][/url]\n[url=][size=150][color=#00FF00]Gdrive[/color][/size][/url]\n[/b][/hide][/CENTER]`;
+				let dump = `${logo}${title}${rating}${reviewscount}${screens}${description}${dev}${category}${ContentRating}${requiredAndroid}${size}${LatestPlayStoreVersion}${link}${modinfo}${VT}${ddl}`;
+				// Try to paste to page. Alert user if error
 				try {
 					document.getElementsByName('message')[0].value = dump;
 				} catch (err) {
@@ -286,10 +331,15 @@ function generateTemplate(APIVALUE) {
 					let xf_title_value = document.getElementsByName('subject')[0].value;
 					if (!xf_title_value) {
 						document.getElementsByName('subject')[0].value =
-							json.Title + ' (' + json.Year + ')';
+							'[Mega][Zippy][Gdrive][Android]' +
+							gplayjson.name +
+							' ' +
+							curVer[0].nextElementSibling.innerText +
+							' ' +
+							titleExtra;
 					}
 				}
-			}
+			},
 		});
 	}
 }
