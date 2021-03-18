@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        Snahp Android Template Generator
-// @version     1.0.0
+// @version     1.1.0
 // @description Generates a Template for the Android section of Forum.Snahp.it
 // @author      BiliTheBox
 // @icon        https://forum.snahp.it/favicon.ico
@@ -9,7 +9,7 @@
 // @updateURL   https://github.com/Bilibox/Snahp-Template-Generators/raw/Android/script.user.js
 // @downloadURL https://github.com/Bilibox/Snahp-Template-Generators/raw/Android/script.user.js
 // @include     /^https?:\/\/forum\.snahp\.it\/posting\.php\?mode\=post\&f\=(47)/
-// @require     https://code.jquery.com/jquery-3.5.1.min.js
+// @require     https://code.jquery.com/jquery-3.6.0.min.js
 // @grant       GM_addStyle
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
@@ -19,12 +19,22 @@
 const htmlTemplate = `
 <button class="button--primary button button--icon" id="gmShowTemplate" name="templateButton" style="display:none" type="button">Show</button>
 <dr style="clear: left;" id="ApkGenerator">
+<dl style="clear: left;">
 <dt> <label id="GPSlink" for="GooglePlayLink">Play Store Link:</label> </dt>
-<dd> <input type="text" id="gplaylink" value="" class="inputbox autowidth" size="45" placeholder="Google Play Store Link"></input> </dd>
+<dd> <input type="text" id="GooglePlayLink" value="" class="inputbox autowidth" size="45" placeholder="Google Play Store Link"></input> </dd>
+</dl>
+<dl style="clear: left;">
 <dt> <label id="modsinfo" for="ModificationInformation">Mod Info:</label> </dt>
-<dd> <textarea rows="1" style="width:100%;" class="inputbox autowidth" id="modinfo" size="45" placeholder="Mod Details"></textarea> </dd>
+<dd> <textarea rows="1" style="width:100%;" class="inputbox autowidth" id="ModificationInformation" size="45" placeholder="Mod Details"></textarea> </dd>
+</dl>
+<dl style="clear: left;">
 <dt> <label id="VT" for="VirusTotalLink">VirusTotal Link:</label> </dt>
-<dd> <input type="text" id="virustotal" value="" class="inputbox autowidth" size="45" placeholder="VirusTotal Link"></input> </dd>
+<dd> <input type="text" id="VirusTotalLink" value="" class="inputbox autowidth" size="45" placeholder="VirusTotal Link"></input> </dd>
+</dl>
+<dl style="clear: left;">
+<dt> <label id="DLAndroid" for="DownloadLink">Download Links:</label> </dt>
+<dd> <input type="text" id="DownloadLink" value="" class="inputbox autowidth" size="45" placeholder="Download Link"></input> </dd>
+</dl>
 <dt><label> </label></dt>
 <dd>
 <span>Mod</span>
@@ -58,16 +68,6 @@ const htmlTemplate = `
 </dr>
 `;
 
-var errPopup = `<div class="overlay-container is-active" name='errorpopup' id="js-XFUniqueId2"><div class="overlay" tabindex="-1" role="alertdialog" id="errBox" aria-hidden="false">
-<div class="overlay-title">
-<a class="overlay-titleCloser js-overlayClose" role="button" tabindex="0" aria-label="Close"></a>
-Oops! We ran into some problems.</div>
-<div class="overlay-content">
-<div class="blockMessage">
-<ul>
-errormessages
-</ul>
-</div></div></div></div>`;
 // Run the Main function
 main();
 
@@ -77,7 +77,7 @@ function main() {
 		return;
 	}
 	var temphtml = document.getElementsByTagName('dl')[0]; // Grab div under the inputs
-	temphtml.innerHTML += htmlTemplate; // Place our HTML under the inputs
+	temphtml.insertAdjacentHTML('afterend', htmlTemplate); // Place our HTML under the inputs
 	var titlechange = document.getElementsByName('title')[0]; // Grab "Title" bar from HTML
 	if (titlechange) {
 		titlechange.className += 'input'; // Change title to less boldness using different class
@@ -86,16 +86,6 @@ function main() {
 	$('#gmShowTemplate').click(() => showTemplate()); // When Show button clicked, run Show function
 	$('#gmGenerate').click(() => generateTemplate()); // When Generate button clicked, run Generate function
 }
-
-// Close Error Popup if overlay clicked
-$(document).click(function (e) {
-	if (
-		(!$('#errBox').is(e.target) & $('#js-XFUniqueId2').is(e.target)) |
-		$('.js-overlayClose').is(e.target)
-	) {
-		document.getElementsByName('errorpopup')[0].remove();
-	}
-});
 
 // Add Hotkey "Escape" to Hide fields
 $(document).on('keydown', function (event) {
@@ -115,13 +105,6 @@ function showTemplate() {
 function hideTemplate() {
 	document.getElementById('gmShowTemplate').style.display = 'block';
 	$('#ApkGenerator').hide();
-}
-
-// Popup for Errors
-function Popup(errors) {
-	let errOutput = errPopup.replace('errormessages', errors);
-	var body = document.getElementsByTagName('Body')[0];
-	body.insertAdjacentHTML('beforeend', errOutput);
 }
 
 // Grab Specific divs
@@ -145,43 +128,56 @@ function upperCase(str) {
 }
 
 function generateTemplate() {
-	// Create variables from HTML
-	let [link, modinfo, VT, mod, unlocked, adfree, lite, premium] = [
-		$('#gplaylink').val(),
-		$('#modinfo').val(),
-		$('#virustotal').val(),
-		document.querySelector('input[value="mod"]'),
-		document.querySelector('input[value="unlocked"]'),
-		document.querySelector('input[value="adfree"]'),
-		document.querySelector('input[value="lite"]'),
-		document.querySelector('input[value="premium"]'),
+	// Create variables from HTML Input
+	let [link, modinfo, vtsplit, DDLS, mod, unlocked, adfree, lite, premium] = [
+		$('#GooglePlayLink').val(),
+		$('#ModificationInformation').val(),
+		$('#VirusTotalLink').val().split(' '),
+		$('#DownloadLink').val(),
+		document.querySelector('input[value="mod"]').checked ? ' [Mod]' : '',
+		document.querySelector('input[value="unlocked"]').checked
+			? ' [Unlocked]'
+			: '',
+		document.querySelector('input[value="adfree"]').checked ? ' [Ad-Free]' : '',
+		document.querySelector('input[value="lite"]').checked ? ' [Lite]' : '',
+		document.querySelector('input[value="premium"]').checked
+			? ' [Premium]'
+			: '',
 	];
+
+	var titleExtra = mod + unlocked + premium + adfree + lite;
+
+	// Create Prefix placeholder per DDLs
+	var DDLPrefix = '';
+	var megaDomains = ['mega.nz', 'mega.co.nz']; // In case using old Mega link
+	if (megaDomains.some((el) => DDLS.includes(el))) {
+		DDLPrefix += '[Mega]';
+	}
+	if (DDLS.includes('zippyshare.com')) {
+		DDLPrefix += '[Zippy]';
+	}
+	if (DDLS.includes('drive.google.com')) {
+		DDLPrefix += '[Gdrive]';
+	}
+	DDLS = DDLS.split(' '); // Split into array for Auto DDL detection
+
 	// Error Messages for required fields
-	if (!link | !VT) {
+	if (!link | vtsplit[0] == "") {
 		var errors = '';
-		errors += !link ? '<li>No Google Play link Found!</li>' : '';
-		errors += !VT ? '<li>No Virustotal Found!</li>' : '';
-		Popup(errors);
+		errors += !link ? 'No Google Play link Found!' : '';
+		errors += (vtsplit[0] == "") ? '\nNo Virustotal Found!' : '';
+		alert(errors);
 	} else {
 		link = link.includes('&hl')
 			? link.replace(/\&.*$/, '&hl=en_US')
 			: link + '&hl=en_US';
 
 		// Split VT links 1 per line
-		let vtsplit = VT.split(' ');
-		VT = '';
-		counter = 0;
+		let VT = '';
 		for (let vts of vtsplit) {
-			counter += 1;
-			VT += `[url=${vts}][size=150][color=#40BFFF][B] ${counter} VirusTotal[/B][/color][/size][/url]\n`;
+			VT += `[url=${vts}][size=150][color=#40BFFF][B]VirusTotal[/B][/color][/size][/url]\n`;
 		}
-		// Check for pressed buttons
-		mod = mod.checked ? ' [Mod]' : '';
-		unlocked = unlocked.checked ? ' [Unlocked]' : '';
-		adfree = adfree.checked ? ' [Ad-Free]' : '';
-		premium = premium.checked ? ' [Premium]' : '';
-		lite = lite.checked ? ' [Lite]' : '';
-		var titleExtra = mod + unlocked + premium + adfree + lite;
+
 		// Get GPS page & details for post
 		GM_xmlhttpRequest({
 			method: 'GET',
@@ -189,20 +185,23 @@ function generateTemplate() {
 			onload: function (response) {
 				let [page, parser] = [response.responseText, new DOMParser()];
 				let parsedHtml = parser.parseFromString(page, 'text/html');
+
 				// Grab json from parse
-				var gplayjson = parsedHtml.querySelector(
+				let gplayjson = parsedHtml.querySelector(
 					'script[type="application/ld+json"]'
 				).text;
 				gplayjson = JSON.parse(gplayjson);
+
 				// Turn nodelist into an array
-				var h2 = Array.prototype.slice.call(parsedHtml.querySelectorAll('div'));
-				// Array of matches
-				// Filter Function
-				var [siz, curVer, reqAndr] = [
+				let h2 = Array.prototype.slice.call(parsedHtml.querySelectorAll('div'));
+
+				// Filter wanted results
+				let [siz, curVer, reqAndr] = [
 					h2.filter(filterSize),
 					h2.filter(filterCurVer),
 					h2.filter(filterReqAndr),
 				];
+
 				// Grab all images & find logo
 				let images = parsedHtml.getElementsByTagName('img');
 				for (let logoimg of images) {
@@ -214,13 +213,15 @@ function generateTemplate() {
 							'[/fimg]\n\n';
 					}
 				}
+
 				// App Name
 				let title = gplayjson.name
 					? '[COLOR=rgb(26, 162, 96)][B][size=200]' +
 					  gplayjson.name +
 					  '[/size][/B][/COLOR]\n'
 					: '';
-				//Review Star Rating
+
+				// Review Star Rating
 				try {
 					var rating = gplayjson.aggregateRating.ratingValue
 						? '\n[fimg=50,50]https://i.postimg.cc/g28wfSTs/630px-Green-star-41-108-41-svg.png[/fimg][size=130][B]' +
@@ -231,18 +232,20 @@ function generateTemplate() {
 					console.log(e);
 					rating = '';
 				}
-				// Amount of Reviews
+
+				// Review Count
 				try {
 					var reviewscount = gplayjson.aggregateRating.ratingCount
 						? '[fimg=50,50]https://i.postimg.cc/nV6RDhJ3/Webp-net-resizeimage-002.png[/fimg]' +
-						  gplayjson.aggregateRating.ratingCount +
+						  Number(gplayjson.aggregateRating.ratingCount).toLocaleString() +
 						  '[/size]\n\n'
 						: '';
 				} catch (e) {
 					console.log(e);
 					reviewscount = '';
 				}
-				// Grab SS from images (Only grab 3!)
+
+				// Grab first 3 Screenshots
 				var screenshots = [];
 				for (let screen of images) {
 					let screenattr = screen.alt;
@@ -262,14 +265,17 @@ function generateTemplate() {
 						break;
 					}
 				}
+
 				var screens = '';
 				for (let ss of screenshots) {
 					screens += '[fimg=300,500]' + ss + '[/fimg]';
 				}
+
 				screens =
 					'[size=200][color=rgb(26, 162, 96)][B]Screenshots[/B][/color][/size]\n\n' +
 					screens +
 					'[/center]\n[hr][/hr]\n\n';
+
 				// Grab App Details from Play Store HTML parse
 				// App Description
 				let description = gplayjson.description
@@ -277,48 +283,82 @@ function generateTemplate() {
 					  gplayjson.description +
 					  '\n[/code]\n[hr][/hr]\n\n'
 					: '';
+
 				// Developer Name
 				let dev = gplayjson.author.name
 					? '[size=200][color=rgb(26, 162, 96)][B]App Details[/B][/color][/size]\n[list]\n[*][B]Developer: [/B] ' +
 					  upperCase(gplayjson.author.name)
 					: '';
+
 				// App Category
 				let category = gplayjson.applicationCategory
 					? '\n[*][B]Category: [/B] ' + upperCase(gplayjson.applicationCategory)
 					: '';
+
 				// Age Content Rating
 				let ContentRating = gplayjson.contentRating
 					? '\n[*][B]Content Rating: [/B] ' + gplayjson.contentRating
 					: '';
+
 				// Required Android Version
 				let requiredAndroid = reqAndr[0].nextElementSibling.innerText
 					? '\n[*][B]Required Android Version: [/B] ' +
 					  reqAndr[0].nextElementSibling.innerText
 					: '';
+
 				// App Size
 				let size = siz[0].nextElementSibling.innerText
-					? '\n[*][B]Size: [/B] ' +
-					  siz[0].nextElementSibling.innerText +
-					  ' (Taken from the Google Play Store)'
+					? '\n[*][B]Size (From The Play Store): [/B] ' +
+					  siz[0].nextElementSibling.innerText
 					: '';
+
 				// Latest Version from the Playstore
 				let LatestPlayStoreVersion = curVer[0].nextElementSibling.innerText
 					? '\n[*][B]Latest Google Play Version: [/B] ' +
 					  curVer[0].nextElementSibling.innerText +
 					  '\n[/LIST]\n'
 					: '';
+
 				// Add BBCode for "Get this on Google Play Store"
 				link =
 					'[url=' +
 					link +
 					'][fimg=300,115]https://i.postimg.cc/mrWtVGwr/image.png[/fimg][/url]\n\n';
+
 				// Don't add modinfo line if not needed
 				modinfo = modinfo
-					? `[SIZE=200][COLOR=rgb(26, 162, 96)][B]Mod Info[/B][/COLOR][/SIZE]\n\n${modinfo}\n\n[hr][/hr]\n\n`
+					? `[size=200][color=rgb(26, 162, 96)][B]Mod Info[/B][/COLOR][/SIZE]\n\n${modinfo}\n\n[hr][/hr]\n\n`
 					: '';
-				VT = `[SIZE=200][COLOR=rgb(26, 162, 96)][B]Virustotal[/B][/color][/size]\n\n${VT}\n\n[hr][/hr]\n\n`;
-				ddl = `[size=200][COLOR=rgb(26, 162, 96)][B]Download Link[/B][/COLOR][/SIZE]\n\n[CENTER]\n[hide][b][url=][size=150][color=#FF0000]MEGA[/color][/size][/url]\n[url=][size=150][color=#FFFF00]ZippyShare[/color][/size][/url]\n[url=][size=150][color=#00FF00]Gdrive[/color][/size][/url]\n[/b][/hide][/CENTER]`;
-				let dump = `${logo}${title}${rating}${reviewscount}${screens}${description}${dev}${category}${ContentRating}${requiredAndroid}${size}${LatestPlayStoreVersion}${link}${modinfo}${VT}${ddl}`;
+				VT = `[size=200][color=rgb(26, 162, 96)][B]Virustotal[/B][/color][/size]\n\n${VT}\n\n[hr][/hr]\n\n`;
+
+				// Auto DDL detection
+				let whichddls = '[hide][b]';
+				if (DDLS == null) {
+					whichddls += '[url=][size=150]Download Link[/size][/url]';
+				} else {
+					// Allow for multiple DDLS of same type, auto fill in DDL
+					for (let link of DDLS) {
+						if (megaDomains.some((el) => link.includes(el))) {
+							whichddls += `[url=${link}][size=150][color=#FF0000]MEGA[/color][/size][/url]\n`;
+						}
+						else if (link.includes('zippyshare.com')) {
+							whichddls += `[url=${link}][size=150][color=#FFFF00]ZippyShare[/color][/size][/url]\n`;
+						}
+						else if (link.includes('drive.google.com')) {
+							whichddls += `[url=${link}][size=150][color=#00FF00]Gdrive[/color][/size][/url]\n`;
+						} else {
+							whichddls += `[url=${link}][size=150]Download Link[/size][/url]\n`;
+						}
+					}
+				}
+
+				let ddl =
+					`[size=200][color=rgb(26, 162, 96)][B]Download Link[/B][/COLOR][/size]\n\n[center]\n` +
+					whichddls +
+					`[/b][/hide][/CENTER]`;
+				let updateLog = `\n\n[size=200][color=rgb(26, 162, 96)][B]Update Log[/B][/color][/size]\n[code]\n\n[/code]`;
+				let dump = `${logo}${title}${rating}${reviewscount}${screens}${description}${dev}${category}${ContentRating}${requiredAndroid}${size}${LatestPlayStoreVersion}${link}${modinfo}${VT}${ddl}${updateLog}`;
+
 				// Try to paste to page. Alert user if error
 				try {
 					document.getElementsByName('message')[0].value = dump;
@@ -329,14 +369,16 @@ function generateTemplate() {
 					);
 				} finally {
 					let xf_title_value = document.getElementsByName('subject')[0].value;
+
 					if (!xf_title_value) {
 						document.getElementsByName('subject')[0].value =
-							'[Mega][Zippy][Gdrive][Android]' +
+							DDLPrefix +
+							'[Android]' +
 							gplayjson.name +
-							' ' +
+							' v' +
 							curVer[0].nextElementSibling.innerText +
-							' ' +
-							titleExtra;
+							titleExtra +
+							' [MB]';
 					}
 				}
 			},
@@ -347,20 +389,23 @@ function generateTemplate() {
 //--- CSS styles make it work...
 GM_addStyle(
 	'                                         \
-    @media screen and (min-width: 300px) {    \
-      .inputbox{                              \
-            max-width:330px;                  \
-            }                                 \
-      .result{                                \
+    @media screen and (min-width: 300px) {	  \
+    	.inputbox {                           \
+        	max-width:330px;                  \
+        }                                     \
+    	.result {                             \
             max-height:10px;                  \
             display:unset;                    \
-      }                                       \
-      .content{                               \
+    	}                                     \
+    	.content {                            \
             overflow:unset;                   \
             min-height:unset;                 \
             cursor:pointer;                   \
             padding-bottom:unset;             \
             line-height:unset;                \
-}                                             \
-'
+		}                                     \
+		textarea#ModificationInformation {    \
+    		width: 100% !important;           \
+		}                                     \
+	}'
 );
