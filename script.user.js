@@ -127,6 +127,45 @@ function upperCase(str) {
 	});
 }
 
+// Grab Screenshots From Google Play
+function GPlayScreenShots(images) {
+	var screens = '';
+	let counter = 0;
+	let fimg = '';
+	for (let screen of images) {
+		if (screen.alt == 'Screenshot Image') {
+			if (screen.width > '200') {
+				fimg = '[fimg=500,300]';
+			} else {
+				fimg = '[fimg=300,500]';
+			}
+
+			if (!screen.dataset | !screen.dataset.srcset) {
+				screens +=
+					fimg +
+					screen.srcset.replace('-rw', '').replace(' 2x', '') +
+					'[/fimg]';
+				counter++;
+			} else {
+				screens +=
+					fimg +
+					screen.dataset.srcset.replace('-rw', '').replace(' 2x', '') +
+					'[/fimg]';
+				counter++;
+			}
+
+			if (counter == 3) {
+				break;
+			}
+		}
+	}
+	return (
+		'[size=200][color=rgb(26, 162, 96)][B]Screenshots[/B][/color][/size]\n\n' +
+		screens +
+		'[/center]\n[hr][/hr]\n\n'
+	);
+}
+
 function generateTemplate() {
 	// Create variables from HTML Input
 	let [link, modinfo, vtsplit, DDLS, mod, unlocked, adfree, lite, premium] = [
@@ -245,36 +284,8 @@ function generateTemplate() {
 					reviewscount = '';
 				}
 
-				// Grab first 3 Screenshots
-				var screenshots = [];
-				for (let screen of images) {
-					let screenattr = screen.alt;
-					if (screenattr == 'Screenshot Image') {
-						if (!screen.dataset | !screen.dataset.srcset) {
-							screenshots.push(
-								screen.srcset.replace('-rw', '').replace(' 2x', '') + '\n'
-							);
-						} else {
-							screenshots.push(
-								screen.dataset.srcset.replace('-rw', '').replace(' 2x', '') +
-									'\n'
-							);
-						}
-					}
-					if (screenshots.length == '3') {
-						break;
-					}
-				}
-
-				var screens = '';
-				for (let ss of screenshots) {
-					screens += '[fimg=300,500]' + ss + '[/fimg]';
-				}
-
-				screens =
-					'[size=200][color=rgb(26, 162, 96)][B]Screenshots[/B][/color][/size]\n\n' +
-					screens +
-					'[/center]\n[hr][/hr]\n\n';
+				//Grab Screenshots
+				var screens = GPlayScreenShots(images);
 
 				// Grab App Details from Play Store HTML parse
 				// App Description
@@ -369,12 +380,15 @@ function generateTemplate() {
 					let xf_title_value = document.getElementsByName('subject')[0].value;
 
 					if (!xf_title_value) {
+						let ver =
+							curVer[0].nextElementSibling.innerText != 'Varies with device'
+								? ' v' + curVer[0].nextElementSibling.innerText
+								: '';
 						document.getElementsByName('subject')[0].value =
 							DDLPrefix +
 							'[Android]' +
 							gplayjson.name +
-							' v' +
-							curVer[0].nextElementSibling.innerText +
+							ver +
 							titleExtra +
 							' [MB]';
 					}
