@@ -162,10 +162,10 @@ function generateTemplate() {
 	DDLS = DDLS.split(' '); // Split into array for Auto DDL detection
 
 	// Error Messages for required fields
-	if (!link | vtsplit[0] == "") {
+	if (!link | (vtsplit[0] == '')) {
 		var errors = '';
 		errors += !link ? 'No Google Play link Found!' : '';
-		errors += (vtsplit[0] == "") ? '\nNo Virustotal Found!' : '';
+		errors += vtsplit[0] == '' ? '\nNo Virustotal Found!' : '';
 		alert(errors);
 	} else {
 		link = link.includes('&hl')
@@ -340,11 +340,9 @@ function generateTemplate() {
 					for (let link of DDLS) {
 						if (megaDomains.some((el) => link.includes(el))) {
 							whichddls += `[url=${link}][size=150][color=#FF0000]MEGA[/color][/size][/url]\n`;
-						}
-						else if (link.includes('zippyshare.com')) {
+						} else if (link.includes('zippyshare.com')) {
 							whichddls += `[url=${link}][size=150][color=#FFFF00]ZippyShare[/color][/size][/url]\n`;
-						}
-						else if (link.includes('drive.google.com')) {
+						} else if (link.includes('drive.google.com')) {
 							whichddls += `[url=${link}][size=150][color=#00FF00]Gdrive[/color][/size][/url]\n`;
 						} else {
 							whichddls += `[url=${link}][size=150]Download Link[/size][/url]\n`;
