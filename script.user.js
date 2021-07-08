@@ -88,7 +88,7 @@ function Main() {
 			HideTemplate();
 		},
 		false
-	); 
+	);
 	document.getElementById('showTemplate').addEventListener(
 		'click',
 		function () {
@@ -158,9 +158,7 @@ function ScreenshotHandler(images) {
 
 			if (!image.dataset | !image.dataset.srcset) {
 				screenshotBBCode +=
-					fimg +
-					image.srcset.replace('-rw', '').replace(' 2x', '') +
-					'[/fimg]';
+					fimg + image.srcset.replace('-rw', '').replace(' 2x', '') + '[/fimg]';
 				counter++;
 			} else {
 				screenshotBBCode +=
@@ -219,185 +217,185 @@ function GenerateTemplate() {
 		errors += !link ? 'No Google Play link Found!' : '';
 		errors += vtsplit[0] == '' ? '\nNo Virustotal Found!' : '';
 		alert(errors);
-		return
+		return;
 	}
-		link = link.includes('&hl')
-			? link.replace(/\&.*$/, '&hl=en_US')
-			: link + '&hl=en_US';
+	link = link.includes('&hl')
+		? link.replace(/\&.*$/, '&hl=en_US')
+		: link + '&hl=en_US';
 
-		// Split VT links 1 per line
-		let VT = '';
-		for (let vts of vtsplit) {
-			VT += `[url=${vts}][size=150][color=#40BFFF][B]VirusTotal[/B][/color][/size][/url]\n`;
-		}
+	// Split VT links 1 per line
+	let VT = '';
+	for (let vts of vtsplit) {
+		VT += `[url=${vts}][size=150][color=#40BFFF][B]VirusTotal[/B][/color][/size][/url]\n`;
+	}
 
-		// Get GPS page & details for post
-		GM_xmlhttpRequest({
-			method: 'GET',
-			url: link,
-			onload: function (response) {
-				let [page, parser] = [response.responseText, new DOMParser()];
-				let parsedHtml = parser.parseFromString(page, 'text/html');
+	// Get GPS page & details for post
+	GM_xmlhttpRequest({
+		method: 'GET',
+		url: link,
+		onload: function (response) {
+			let [page, parser] = [response.responseText, new DOMParser()];
+			let parsedHtml = parser.parseFromString(page, 'text/html');
 
-				// Grab json from parse
-				let gplayjson = parsedHtml.querySelector(
-					'script[type="application/ld+json"]'
-				).text;
-				gplayjson = JSON.parse(gplayjson);
+			// Grab json from parse
+			let gplayjson = parsedHtml.querySelector(
+				'script[type="application/ld+json"]'
+			).text;
+			gplayjson = JSON.parse(gplayjson);
 
-				// Turn nodelist into an array
-				let h2 = Array.prototype.slice.call(parsedHtml.querySelectorAll('div'));
+			// Turn nodelist into an array
+			let h2 = Array.prototype.slice.call(parsedHtml.querySelectorAll('div'));
 
-				// Filter wanted results
-				let [siz, curVer, reqAndr] = [
-					h2.filter(filterSize),
-					h2.filter(filterCurVer),
-					h2.filter(filterReqAndr),
-				];
+			// Filter wanted results
+			let [siz, curVer, reqAndr] = [
+				h2.filter(filterSize),
+				h2.filter(filterCurVer),
+				h2.filter(filterReqAndr),
+			];
 
-				// Grab all images & find logo
-				let images = parsedHtml.getElementsByTagName('img');
-				for (let logoimg of images) {
-					let logoattr = logoimg.alt;
-					if (logoattr == 'Cover art') {
-						var logo =
-							'[CENTER][fimg=180,180]' +
-							logoimg.srcset.replace('-rw', '').replace(' 2x', '') +
-							'[/fimg]\n\n';
+			// Grab all images & find logo
+			let images = parsedHtml.getElementsByTagName('img');
+			for (let logoimg of images) {
+				let logoattr = logoimg.alt;
+				if (logoattr == 'Cover art') {
+					var logo =
+						'[CENTER][fimg=180,180]' +
+						logoimg.srcset.replace('-rw', '').replace(' 2x', '') +
+						'[/fimg]\n\n';
+				}
+			}
+
+			// App Name
+			let title = gplayjson.name
+				? '[COLOR=rgb(26, 162, 96)][B][size=200]' +
+				  gplayjson.name +
+				  '[/size][/B][/COLOR]\n'
+				: '';
+
+			// Review Star Rating
+			try {
+				var rating = gplayjson.aggregateRating.ratingValue
+					? '\n[fimg=50,50]https://i.postimg.cc/g28wfSTs/630px-Green-star-41-108-41-svg.png[/fimg][size=130][B]' +
+					  Math.floor(gplayjson.aggregateRating.ratingValue) +
+					  '/5[/B]'
+					: '';
+			} catch (e) {
+				console.log(e);
+				rating = '';
+			}
+
+			// Review Count
+			try {
+				var reviewscount = gplayjson.aggregateRating.ratingCount
+					? '[fimg=50,50]https://i.postimg.cc/nV6RDhJ3/Webp-net-resizeimage-002.png[/fimg]' +
+					  Number(gplayjson.aggregateRating.ratingCount).toLocaleString() +
+					  '[/size]\n\n'
+					: '';
+			} catch (e) {
+				console.log(e);
+				reviewscount = '';
+			}
+
+			//Grab Screenshots
+			var screens = ScreenshotHandler(images);
+
+			// Grab App Details from Play Store HTML parse
+			// App Description
+			let description = gplayjson.description
+				? `[size=200][color=rgb(26, 162, 96)][B]App Description[/B][/color][/size]\n\n[code]\n${gplayjson.description}\n[/code]\n[hr][/hr]\n\n`
+				: '';
+
+			// Developer Name
+			let dev = gplayjson.author.name
+				? `[size=200][color=rgb(26, 162, 96)][B]App Details[/B][/color][/size]\n[list]\n[*][B]Developer: [/B] ${UpperCase(
+						gplayjson.author.name
+				  )}`
+				: '';
+
+			// App Category
+			let category = gplayjson.applicationCategory
+				? `\n[*][B]Category: [/B] ${UpperCase(gplayjson.applicationCategory)}`
+				: '';
+
+			// Age Content Rating
+			let ContentRating = gplayjson.contentRating
+				? '\n[*][B]Content Rating: [/B] ' + gplayjson.contentRating
+				: '';
+
+			// Required Android Version
+			let requiredAndroid = reqAndr[0].nextElementSibling.innerText
+				? `\n[*][B]Required Android Version: [/B] ${reqAndr[0].nextElementSibling.innerText}`
+				: '';
+
+			// App Size
+			let size = siz[0].nextElementSibling.innerText
+				? `\n[*][B]Size (From The Play Store): [/B] ${siz[0].nextElementSibling.innerText}`
+				: '';
+
+			// Latest Version from the Playstore
+			let LatestPlayStoreVersion = curVer[0].nextElementSibling.innerText
+				? `\n[*][B]Latest Google Play Version: [/B]${curVer[0].nextElementSibling.innerText}\n[/LIST]\n`
+				: '';
+
+			// Add BBCode for "Get this on Google Play Store"
+			link = `[url=${link}][fimg=300,115]https://i.postimg.cc/mrWtVGwr/image.png[/fimg][/url]\n\n`;
+
+			// Don't add modinfo line if not needed
+			modinfo = modinfo
+				? `[size=200][color=rgb(26, 162, 96)][B]Mod Info[/B][/COLOR][/SIZE]\n\n${modinfo}\n\n[hr][/hr]\n\n`
+				: '';
+			VT = `[size=200][color=rgb(26, 162, 96)][B]Virustotal[/B][/color][/size]\n\n${VT}\n\n[hr][/hr]\n\n`;
+
+			// Auto DDL detection
+			let whichddls = '[hide][b]';
+			if (DDLS == null) {
+				whichddls += '[url=][size=150]Download Link[/size][/url]';
+			} else {
+				// Allow for multiple DDLS of same type, auto fill in DDL
+				for (let link of DDLS) {
+					if (megaDomains.some((el) => link.includes(el))) {
+						whichddls += `[url=${link}][size=150][color=#FF0000]MEGA[/color][/size][/url]\n`;
+					} else if (link.includes('zippyshare.com')) {
+						whichddls += `[url=${link}][size=150][color=#FFFF00]ZippyShare[/color][/size][/url]\n`;
+					} else if (link.includes('drive.google.com')) {
+						whichddls += `[url=${link}][size=150][color=#00FF00]Gdrive[/color][/size][/url]\n`;
+					} else {
+						whichddls += `[url=${link}][size=150]Download Link[/size][/url]\n`;
 					}
 				}
+			}
 
-				// App Name
-				let title = gplayjson.name
-					? '[COLOR=rgb(26, 162, 96)][B][size=200]' +
-					  gplayjson.name +
-					  '[/size][/B][/COLOR]\n'
-					: '';
+			let ddl = `[size=200][color=rgb(26, 162, 96)][B]Download Link[/B][/COLOR][/size]\n\n[center]\n${whichddls}[/b][/hide][/CENTER]`;
+			let updateLog = `\n\n[size=200][color=rgb(26, 162, 96)][B]Update Log[/B][/color][/size]\n[code]\n\n[/code]`;
+			let dump = `${logo}${title}${rating}${reviewscount}${screens}${description}${dev}${category}${ContentRating}${requiredAndroid}${size}${LatestPlayStoreVersion}${link}${modinfo}${VT}${ddl}${updateLog}`;
 
-				// Review Star Rating
-				try {
-					var rating = gplayjson.aggregateRating.ratingValue
-						? '\n[fimg=50,50]https://i.postimg.cc/g28wfSTs/630px-Green-star-41-108-41-svg.png[/fimg][size=130][B]' +
-						  Math.floor(gplayjson.aggregateRating.ratingValue) +
-						  '/5[/B]'
-						: '';
-				} catch (e) {
-					console.log(e);
-					rating = '';
+			// Try to paste to page. Alert user if error
+			try {
+				document.getElementsByName('message')[0].value = dump;
+			} catch (err) {
+				alert(
+					'Something went wrong! Please report to my Developer.... I get scared when I crash ☹️' +
+						err
+				);
+			} finally {
+				let xf_title_value = document.getElementsByName('subject')[0].value;
+
+				if (!xf_title_value) {
+					let ver =
+						curVer[0].nextElementSibling.innerText != 'Varies with device'
+							? ' v' + curVer[0].nextElementSibling.innerText
+							: '';
+					document.getElementsByName('subject')[0].value =
+						DDLPrefix +
+						'[Android]' +
+						gplayjson.name +
+						ver +
+						titleExtra +
+						' [MB]';
 				}
-
-				// Review Count
-				try {
-					var reviewscount = gplayjson.aggregateRating.ratingCount
-						? '[fimg=50,50]https://i.postimg.cc/nV6RDhJ3/Webp-net-resizeimage-002.png[/fimg]' +
-						  Number(gplayjson.aggregateRating.ratingCount).toLocaleString() +
-						  '[/size]\n\n'
-						: '';
-				} catch (e) {
-					console.log(e);
-					reviewscount = '';
-				}
-
-				//Grab Screenshots
-				var screens = ScreenshotHandler(images);
-
-				// Grab App Details from Play Store HTML parse
-				// App Description
-				let description = gplayjson.description
-					? `[size=200][color=rgb(26, 162, 96)][B]App Description[/B][/color][/size]\n\n[code]\n${gplayjson.description}\n[/code]\n[hr][/hr]\n\n`
-					: '';
-
-				// Developer Name
-				let dev = gplayjson.author.name
-					? `[size=200][color=rgb(26, 162, 96)][B]App Details[/B][/color][/size]\n[list]\n[*][B]Developer: [/B] ${UpperCase(gplayjson.author.name)}`
-					: '';
-
-				// App Category
-				let category = gplayjson.applicationCategory
-					? `\n[*][B]Category: [/B] ${UpperCase(gplayjson.applicationCategory)}`
-					: '';
-
-				// Age Content Rating
-				let ContentRating = gplayjson.contentRating
-					? '\n[*][B]Content Rating: [/B] ' + gplayjson.contentRating
-					: '';
-
-				// Required Android Version
-				let requiredAndroid = reqAndr[0].nextElementSibling.innerText
-					? `\n[*][B]Required Android Version: [/B] ${reqAndr[0].nextElementSibling.innerText}`
-					: '';
-
-				// App Size
-				let size = siz[0].nextElementSibling.innerText
-					? `\n[*][B]Size (From The Play Store): [/B] ${siz[0].nextElementSibling.innerText}`
-					: '';
-
-				// Latest Version from the Playstore
-				let LatestPlayStoreVersion = curVer[0].nextElementSibling.innerText
-					? `\n[*][B]Latest Google Play Version: [/B]${curVer[0].nextElementSibling.innerText}\n[/LIST]\n`
-					: '';
-
-				// Add BBCode for "Get this on Google Play Store"
-				link =
-					`[url=${link}][fimg=300,115]https://i.postimg.cc/mrWtVGwr/image.png[/fimg][/url]\n\n`;
-
-				// Don't add modinfo line if not needed
-				modinfo = modinfo
-					? `[size=200][color=rgb(26, 162, 96)][B]Mod Info[/B][/COLOR][/SIZE]\n\n${modinfo}\n\n[hr][/hr]\n\n`
-					: '';
-				VT = `[size=200][color=rgb(26, 162, 96)][B]Virustotal[/B][/color][/size]\n\n${VT}\n\n[hr][/hr]\n\n`;
-
-				// Auto DDL detection
-				let whichddls = '[hide][b]';
-				if (DDLS == null) {
-					whichddls += '[url=][size=150]Download Link[/size][/url]';
-				} else {
-					// Allow for multiple DDLS of same type, auto fill in DDL
-					for (let link of DDLS) {
-						if (megaDomains.some((el) => link.includes(el))) {
-							whichddls += `[url=${link}][size=150][color=#FF0000]MEGA[/color][/size][/url]\n`;
-						} else if (link.includes('zippyshare.com')) {
-							whichddls += `[url=${link}][size=150][color=#FFFF00]ZippyShare[/color][/size][/url]\n`;
-						} else if (link.includes('drive.google.com')) {
-							whichddls += `[url=${link}][size=150][color=#00FF00]Gdrive[/color][/size][/url]\n`;
-						} else {
-							whichddls += `[url=${link}][size=150]Download Link[/size][/url]\n`;
-						}
-					}
-				}
-
-				let ddl =
-					`[size=200][color=rgb(26, 162, 96)][B]Download Link[/B][/COLOR][/size]\n\n[center]\n${whichddls}[/b][/hide][/CENTER]`;
-				let updateLog = `\n\n[size=200][color=rgb(26, 162, 96)][B]Update Log[/B][/color][/size]\n[code]\n\n[/code]`;
-				let dump = `${logo}${title}${rating}${reviewscount}${screens}${description}${dev}${category}${ContentRating}${requiredAndroid}${size}${LatestPlayStoreVersion}${link}${modinfo}${VT}${ddl}${updateLog}`;
-
-				// Try to paste to page. Alert user if error
-				try {
-					document.getElementsByName('message')[0].value = dump;
-				} catch (err) {
-					alert(
-						'Something went wrong! Please report to my Developer.... I get scared when I crash ☹️' +
-							err
-					);
-				} finally {
-					let xf_title_value = document.getElementsByName('subject')[0].value;
-
-					if (!xf_title_value) {
-						let ver =
-							curVer[0].nextElementSibling.innerText != 'Varies with device'
-								? ' v' + curVer[0].nextElementSibling.innerText
-								: '';
-						document.getElementsByName('subject')[0].value =
-							DDLPrefix +
-							'[Android]' +
-							gplayjson.name +
-							ver +
-							titleExtra +
-							' [MB]';
-					}
-				}
-			},
-		});
+			}
+		},
+	});
 }
 
 //--- CSS styles make it work...
