@@ -9,10 +9,8 @@
 // @updateURL   https://github.com/Bilibox/Snahp-Template-Generators/raw/Android/script.user.js
 // @downloadURL https://github.com/Bilibox/Snahp-Template-Generators/raw/Android/script.user.js
 // @include     /^https?:\/\/forum\.snahp\.it\/posting\.php\?mode\=post\&f\=(47)/
-// @require     https://code.jquery.com/jquery-3.6.0.min.js
 // @grant       GM_addStyle
 // @grant       GM_xmlhttpRequest
-// @grant       GM_setClipboard
 // @run-at      document-end
 // ==/UserScript==
 
@@ -78,10 +76,6 @@ function Main() {
 	}
 	var temphtml = document.getElementsByTagName('dl')[0]; // Grab div under the inputs
 	temphtml.insertAdjacentHTML('afterend', htmlTemplate); // Place our HTML under the inputs
-	var titlechange = document.getElementsByName('title')[0]; // Grab "Title" bar from HTML
-	if (titlechange) {
-		titlechange.className += 'input'; // Change title to less boldness using different class
-	}
 	document.getElementById('hideTemplate').addEventListener(
 		'click',
 		function () {
@@ -173,13 +167,53 @@ function ScreenshotHandler(images) {
 			}
 		}
 	}
-	let screenshotBBCode = `[size=200][color=rgb(26, 162, 96)][B]Screenshots[/B][/color][/size]\n\n${screenshotBBCode}[/center]\n[hr][/hr]\n\n`;
+	screenshotBBCode = `[size=200][color=rgb(26, 162, 96)][B]Screenshots[/B][/color][/size]\n\n${screenshotBBCode}[/center]\n[hr][/hr]\n\n`;
 	return screenshotBBCode;
+}
+
+function DownloadLinkHandler(downloadLinks, megaDomains) {
+	let downloadLinkBBCode = '[hide][b]';
+	if (downloadLinks == null) {
+		downloadLinkBBCode += '[url=][size=150]Download Link[/size][/url]';
+	} else {
+		for (let link of downloadLinks) {
+			if (megaDomains.some((el) => link.includes(el))) {
+				downloadLinkBBCode += `[url=${link}][size=150][color=#FF0000]MEGA[/color][/size][/url]\n`;
+			} else if (link.includes('zippyshare.com')) {
+				downloadLinkBBCode += `[url=${link}][size=150][color=#FFFF00]ZippyShare[/color][/size][/url]\n`;
+			} else if (link.includes('drive.google.com')) {
+				downloadLinkBBCode += `[url=${link}][size=150][color=#00FF00]Gdrive[/color][/size][/url]\n`;
+			} else {
+				downloadLinkBBCode += `[url=${link}][size=150]Download Link[/size][/url]\n`;
+			}
+		}
+	}
+	downloadLinkBBCode = `[size=200][color=rgb(26, 162, 96)][B]Download Link[/B][/COLOR][/size]\n\n[center]\n${downloadLinkBBCode}[/b][/hide][/CENTER]`;
+	return downloadLinkBBCode;
+}
+
+function VirusTotalHandler(virustotalSplit) {
+	let virustotalLinks = '';
+	for (let splitLink of virustotalSplit) {
+		virustotalLinks += `[url=${splitLink}][size=150][color=#40BFFF][B]VirusTotal[/B][/color][/size][/url]\n`;
+	}
+	virustotalLinks = `[size=200][color=rgb(26, 162, 96)][B]Virustotal[/B][/color][/size]\n\n${virustotalLinks}\n\n[hr][/hr]\n\n`;
+	return virustotalLinks;
 }
 
 function GenerateTemplate() {
 	// Create variables from HTML Input
-	let [link, modinfo, vtsplit, DDLS, mod, unlocked, adfree, lite, premium] = [
+	let [
+		link,
+		modinfo,
+		virustotalLinks,
+		DDLS,
+		mod,
+		unlocked,
+		adfree,
+		lite,
+		premium,
+	] = [
 		document.getElementById('GooglePlayLink').value,
 		document.getElementById('ModificationInformation').value,
 		document.getElementById('VirusTotalLink').value.split(' '),
@@ -194,8 +228,7 @@ function GenerateTemplate() {
 			? ' [Premium]'
 			: '',
 	];
-
-	var titleExtra = mod + unlocked + premium + adfree + lite;
+	let titleExtra = mod + unlocked + premium + adfree + lite;
 
 	// Create Prefix placeholder per DDLs
 	var DDLPrefix = '';
@@ -212,22 +245,20 @@ function GenerateTemplate() {
 	DDLS = DDLS.split(' '); // Split into array for Auto DDL detection
 
 	// Error Messages for required fields
-	if (!link | (vtsplit[0] == '')) {
+	if (!link | (virustotalLinks[0] == '')) {
 		var errors = '';
 		errors += !link ? 'No Google Play link Found!' : '';
-		errors += vtsplit[0] == '' ? '\nNo Virustotal Found!' : '';
+		errors += virustotalLinks[0] == '' ? '\nNo Virustotal Found!' : '';
 		alert(errors);
 		return;
 	}
+
+	// Use US version of page for consistency
 	link = link.includes('&hl')
 		? link.replace(/\&.*$/, '&hl=en_US')
 		: link + '&hl=en_US';
 
-	// Split VT links 1 per line
-	let VT = '';
-	for (let vts of vtsplit) {
-		VT += `[url=${vts}][size=150][color=#40BFFF][B]VirusTotal[/B][/color][/size][/url]\n`;
-	}
+	let virustotalBBCode = VirusTotalHandler(virustotalLinks);
 
 	// Get GPS page & details for post
 	GM_xmlhttpRequest({
@@ -247,10 +278,10 @@ function GenerateTemplate() {
 			let h2 = Array.prototype.slice.call(parsedHtml.querySelectorAll('div'));
 
 			// Filter wanted results
-			let [siz, curVer, reqAndr] = [
-				h2.filter(filterSize),
-				h2.filter(filterCurVer),
-				h2.filter(filterReqAndr),
+			let [appSize, playStoreVersion, requiredVersion] = [
+				h2.filter(FilterSize),
+				h2.filter(FilterCurrentVersion),
+				h2.filter(FilterRequiredVersion),
 			];
 
 			// Grab all images & find logo
@@ -258,26 +289,23 @@ function GenerateTemplate() {
 			for (let logoimg of images) {
 				let logoattr = logoimg.alt;
 				if (logoattr == 'Cover art') {
-					var logo =
-						'[CENTER][fimg=180,180]' +
-						logoimg.srcset.replace('-rw', '').replace(' 2x', '') +
-						'[/fimg]\n\n';
+					var logo = `[CENTER][fimg=180,180]${logoimg.srcset
+						.replace('-rw', '')
+						.replace(' 2x', '')}[/fimg]\n\n`;
 				}
 			}
 
 			// App Name
 			let title = gplayjson.name
-				? '[COLOR=rgb(26, 162, 96)][B][size=200]' +
-				  gplayjson.name +
-				  '[/size][/B][/COLOR]\n'
+				? `[COLOR=rgb(26, 162, 96)][B][size=200]${gplayjson.name}[/size][/B][/COLOR]\n`
 				: '';
 
 			// Review Star Rating
 			try {
 				var rating = gplayjson.aggregateRating.ratingValue
-					? '\n[fimg=50,50]https://i.postimg.cc/g28wfSTs/630px-Green-star-41-108-41-svg.png[/fimg][size=130][B]' +
-					  Math.floor(gplayjson.aggregateRating.ratingValue) +
-					  '/5[/B]'
+					? `\n[fimg=50,50]https://i.postimg.cc/g28wfSTs/630px-Green-star-41-108-41-svg.png[/fimg][size=130][B]${Math.floor(
+							gplayjson.aggregateRating.ratingValue
+					  )}/5[/B]`
 					: '';
 			} catch (e) {
 				console.log(e);
@@ -287,9 +315,9 @@ function GenerateTemplate() {
 			// Review Count
 			try {
 				var reviewscount = gplayjson.aggregateRating.ratingCount
-					? '[fimg=50,50]https://i.postimg.cc/nV6RDhJ3/Webp-net-resizeimage-002.png[/fimg]' +
-					  Number(gplayjson.aggregateRating.ratingCount).toLocaleString() +
-					  '[/size]\n\n'
+					? `[fimg=50,50]https://i.postimg.cc/nV6RDhJ3/Webp-net-resizeimage-002.png[/fimg]${Number(
+							gplayjson.aggregateRating.ratingCount
+					  ).toLocaleString()}[/size]\n\n`
 					: '';
 			} catch (e) {
 				console.log(e);
@@ -314,7 +342,7 @@ function GenerateTemplate() {
 
 			// App Category
 			let category = gplayjson.applicationCategory
-				? `\n[*][B]Category: [/B] ${UpperCase(gplayjson.applicationCategory)}`
+				? `\n[*][B]Category: [/B] ${UpperCase(gplayjson.applicationCategory).replace(/\_/g, ' ')}`
 				: '';
 
 			// Age Content Rating
@@ -323,18 +351,22 @@ function GenerateTemplate() {
 				: '';
 
 			// Required Android Version
-			let requiredAndroid = reqAndr[0].nextElementSibling.innerText
-				? `\n[*][B]Required Android Version: [/B] ${reqAndr[0].nextElementSibling.innerText}`
+			requiredVersion = requiredVersion[0].nextElementSibling.innerText
+				? `\n[*][B]Required Android Version: [/B] ${requiredVersion[0].nextElementSibling.innerText}`
 				: '';
 
 			// App Size
-			let size = siz[0].nextElementSibling.innerText
-				? `\n[*][B]Size (From The Play Store): [/B] ${siz[0].nextElementSibling.innerText}`
+			appSize = appSize[0].nextElementSibling.innerText
+				? `\n[*][B]Size (From The Play Store): [/B] ${appSize[0].nextElementSibling.innerText}`
 				: '';
 
+			let titleVersion =
+				playStoreVersion[0].nextElementSibling.innerText != 'Varies with device'
+					? ' v' + playStoreVersion[0].nextElementSibling.innerText
+					: '';
 			// Latest Version from the Playstore
-			let LatestPlayStoreVersion = curVer[0].nextElementSibling.innerText
-				? `\n[*][B]Latest Google Play Version: [/B]${curVer[0].nextElementSibling.innerText}\n[/LIST]\n`
+			playStoreVersion = playStoreVersion[0].nextElementSibling.innerText
+				? `\n[*][B]Latest Google Play Version: [/B]${playStoreVersion[0].nextElementSibling.innerText}\n[/LIST]\n`
 				: '';
 
 			// Add BBCode for "Get this on Google Play Store"
@@ -344,34 +376,13 @@ function GenerateTemplate() {
 			modinfo = modinfo
 				? `[size=200][color=rgb(26, 162, 96)][B]Mod Info[/B][/COLOR][/SIZE]\n\n${modinfo}\n\n[hr][/hr]\n\n`
 				: '';
-			VT = `[size=200][color=rgb(26, 162, 96)][B]Virustotal[/B][/color][/size]\n\n${VT}\n\n[hr][/hr]\n\n`;
 
-			// Auto DDL detection
-			let whichddls = '[hide][b]';
-			if (DDLS == null) {
-				whichddls += '[url=][size=150]Download Link[/size][/url]';
-			} else {
-				// Allow for multiple DDLS of same type, auto fill in DDL
-				for (let link of DDLS) {
-					if (megaDomains.some((el) => link.includes(el))) {
-						whichddls += `[url=${link}][size=150][color=#FF0000]MEGA[/color][/size][/url]\n`;
-					} else if (link.includes('zippyshare.com')) {
-						whichddls += `[url=${link}][size=150][color=#FFFF00]ZippyShare[/color][/size][/url]\n`;
-					} else if (link.includes('drive.google.com')) {
-						whichddls += `[url=${link}][size=150][color=#00FF00]Gdrive[/color][/size][/url]\n`;
-					} else {
-						whichddls += `[url=${link}][size=150]Download Link[/size][/url]\n`;
-					}
-				}
-			}
-
-			let ddl = `[size=200][color=rgb(26, 162, 96)][B]Download Link[/B][/COLOR][/size]\n\n[center]\n${whichddls}[/b][/hide][/CENTER]`;
 			let updateLog = `\n\n[size=200][color=rgb(26, 162, 96)][B]Update Log[/B][/color][/size]\n[code]\n\n[/code]`;
-			let dump = `${logo}${title}${rating}${reviewscount}${screens}${description}${dev}${category}${ContentRating}${requiredAndroid}${size}${LatestPlayStoreVersion}${link}${modinfo}${VT}${ddl}${updateLog}`;
-
+			let ddl = DownloadLinkHandler(DDLS, megaDomains);
+			let forumBBCode = `${logo}${title}${rating}${reviewscount}${screens}${description}${dev}${category}${ContentRating}${requiredVersion}${appSize}${playStoreVersion}${link}${modinfo}${virustotalBBCode}${ddl}${updateLog}`;
 			// Try to paste to page. Alert user if error
 			try {
-				document.getElementsByName('message')[0].value = dump;
+				document.getElementsByName('message')[0].value = forumBBCode;
 			} catch (err) {
 				alert(
 					'Something went wrong! Please report to my Developer.... I get scared when I crash ☹️' +
@@ -379,19 +390,10 @@ function GenerateTemplate() {
 				);
 			} finally {
 				let xf_title_value = document.getElementsByName('subject')[0].value;
-
 				if (!xf_title_value) {
-					let ver =
-						curVer[0].nextElementSibling.innerText != 'Varies with device'
-							? ' v' + curVer[0].nextElementSibling.innerText
-							: '';
-					document.getElementsByName('subject')[0].value =
-						DDLPrefix +
-						'[Android]' +
-						gplayjson.name +
-						ver +
-						titleExtra +
-						' [MB]';
+					document.getElementsByName(
+						'subject'
+					)[0].value = `${DDLPrefix}[Android]${gplayjson.name}${titleVersion}${titleExtra} [MB]`;
 				}
 			}
 		},
