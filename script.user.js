@@ -17,7 +17,7 @@
 // ==/UserScript==
 
 const htmlTemplate = `
-<button class="button--primary button button--icon" id="gmShowTemplate" name="templateButton" style="display:none" type="button">Show</button>
+<button class="button--primary button button--icon" id="showTemplate" name="templateButton" style="display:none" type="button">Show</button>
 <dr style="clear: left;" id="ApkGenerator">
 <dl style="clear: left;">
 <dt> <label id="GPSlink" for="GooglePlayLink">Play Store Link:</label> </dt>
@@ -58,21 +58,21 @@ const htmlTemplate = `
 <input type="checkbox" id="lite" value="lite" >
 </dd>
 <dd>
-<button class="button--primary button button--icon" id="gmGenerate" name="templateButton" type="button">Generate Template</button>
+<button class="button--primary button button--icon" id="generateTemplate" name="templateButton" type="button">Generate Template</button>
 &nbsp;
-<button class="button--primary button button--icon" id="gmClearBtn" name="templateButton" type="reset">Clear</button>
+<button class="button--primary button button--icon" id="clearBtn" name="templateButton" type="reset">Clear</button>
 &nbsp;
-<button class="button--primary button button--icon" id="gmHideTemplate" name="templateButton" type="button">Hide</button>
+<button class="button--primary button button--icon" id="hideTemplate" name="templateButton" type="button">Hide</button>
 &nbsp;
 </dd>
 </dr>
 `;
 
 // Run the Main function
-main();
+Main();
 
 // Main function that runs the script
-function main() {
+function Main() {
 	if (window.location.href.includes('preview')) {
 		return;
 	}
@@ -82,44 +82,60 @@ function main() {
 	if (titlechange) {
 		titlechange.className += 'input'; // Change title to less boldness using different class
 	}
-	$('#gmHideTemplate').click(() => hideTemplate()); // When Hide button clicked, run hide function
-	$('#gmShowTemplate').click(() => showTemplate()); // When Show button clicked, run Show function
-	$('#gmGenerate').click(() => generateTemplate()); // When Generate button clicked, run Generate function
+	document.getElementById('hideTemplate').addEventListener(
+		'click',
+		function () {
+			HideTemplate();
+		},
+		false
+	); 
+	document.getElementById('showTemplate').addEventListener(
+		'click',
+		function () {
+			ShowTemplate();
+		},
+		false
+	);
+	document.getElementById('generateTemplate').addEventListener(
+		'click',
+		function () {
+			GenerateTemplate();
+		},
+		false
+	);
 }
 
-// Add Hotkey "Escape" to Hide fields
-$(document).on('keydown', function (event) {
-	if (event.key == 'Escape') {
-		$('#ApkGenerator').hide();
-		document.getElementById('gmShowTemplate').style.display = 'block';
-	}
-});
-
 // Show Template HTML and hide "Show" button
-function showTemplate() {
+function ShowTemplate() {
 	document.getElementById('gmShowTemplate').style.display = 'none';
-	$('#ApkGenerator').show();
+	document.getElementById('ApkGenerator').style.display = 'block';
 }
 
 // Hide Template HTML and unhide "Show" button
-function hideTemplate() {
+function HideTemplate() {
 	document.getElementById('gmShowTemplate').style.display = 'block';
-	$('#ApkGenerator').hide();
+	document.getElementById('ApkGenerator').style.display = 'none';
 }
 
-// Grab Specific divs
-function filterSize(element) {
-	return element.textContent === 'Size'; // Return div holding text "Size"
+//* Start Filter functions
+// Return div holding text "Size"
+function FilterSize(element) {
+	return element.textContent === 'Size';
 }
-function filterCurVer(element) {
-	return element.textContent === 'Current Version'; // Return div holding text "Current Version"
+
+// Return div holding text "Current Version"
+function FilterCurrentVersion(element) {
+	return element.textContent === 'Current Version';
 }
-function filterReqAndr(element) {
-	return element.textContent === 'Requires Android'; // Return div holding text "Requires Android"
+
+// Return div holding text "Requires Android"
+function FilterRequiredVersion(element) {
+	return element.textContent === 'Requires Android';
 }
+//* End Filter functions
 
 /*fix word casing*/
-function upperCase(str) {
+function UpperCase(str) {
 	str = str.toLowerCase(); // First make entire string lowercase
 	return str.replace(/(^|\s)\S/g, function (t) {
 		// Return Uppercase for every word in String
@@ -127,29 +143,29 @@ function upperCase(str) {
 	});
 }
 
-// Grab Screenshots From Google Play
-function GPlayScreenShots(images) {
-	var screens = '';
+// Handle BBCode for Screeshots
+function ScreenshotHandler(images) {
+	var screenshotBBCode = '';
 	let counter = 0;
 	let fimg = '';
-	for (let screen of images) {
-		if (screen.alt == 'Screenshot Image') {
-			if (screen.width > '200') {
+	for (let image of images) {
+		if (image.alt == 'Screenshot Image') {
+			if (image.width > '200') {
 				fimg = '[fimg=500,300]';
 			} else {
 				fimg = '[fimg=300,500]';
 			}
 
-			if (!screen.dataset | !screen.dataset.srcset) {
-				screens +=
+			if (!image.dataset | !image.dataset.srcset) {
+				screenshotBBCode +=
 					fimg +
-					screen.srcset.replace('-rw', '').replace(' 2x', '') +
+					image.srcset.replace('-rw', '').replace(' 2x', '') +
 					'[/fimg]';
 				counter++;
 			} else {
-				screens +=
+				screenshotBBCode +=
 					fimg +
-					screen.dataset.srcset.replace('-rw', '').replace(' 2x', '') +
+					image.dataset.srcset.replace('-rw', '').replace(' 2x', '') +
 					'[/fimg]';
 				counter++;
 			}
@@ -159,20 +175,17 @@ function GPlayScreenShots(images) {
 			}
 		}
 	}
-	return (
-		'[size=200][color=rgb(26, 162, 96)][B]Screenshots[/B][/color][/size]\n\n' +
-		screens +
-		'[/center]\n[hr][/hr]\n\n'
-	);
+	let screenshotBBCode = `[size=200][color=rgb(26, 162, 96)][B]Screenshots[/B][/color][/size]\n\n${screenshotBBCode}[/center]\n[hr][/hr]\n\n`;
+	return screenshotBBCode;
 }
 
-function generateTemplate() {
+function GenerateTemplate() {
 	// Create variables from HTML Input
 	let [link, modinfo, vtsplit, DDLS, mod, unlocked, adfree, lite, premium] = [
-		$('#GooglePlayLink').val(),
-		$('#ModificationInformation').val(),
-		$('#VirusTotalLink').val().split(' '),
-		$('#DownloadLink').val(),
+		document.getElementById('GooglePlayLink').value,
+		document.getElementById('ModificationInformation').value,
+		document.getElementById('VirusTotalLink').value.split(' '),
+		document.getElementById('DownloadLink').value,
 		document.querySelector('input[value="mod"]').checked ? ' [Mod]' : '',
 		document.querySelector('input[value="unlocked"]').checked
 			? ' [Unlocked]'
@@ -206,7 +219,8 @@ function generateTemplate() {
 		errors += !link ? 'No Google Play link Found!' : '';
 		errors += vtsplit[0] == '' ? '\nNo Virustotal Found!' : '';
 		alert(errors);
-	} else {
+		return
+	}
 		link = link.includes('&hl')
 			? link.replace(/\&.*$/, '&hl=en_US')
 			: link + '&hl=en_US';
@@ -285,25 +299,22 @@ function generateTemplate() {
 				}
 
 				//Grab Screenshots
-				var screens = GPlayScreenShots(images);
+				var screens = ScreenshotHandler(images);
 
 				// Grab App Details from Play Store HTML parse
 				// App Description
 				let description = gplayjson.description
-					? '[size=200][color=rgb(26, 162, 96)][B]App Description[/B][/color][/size]\n\n[code]\n' +
-					  gplayjson.description +
-					  '\n[/code]\n[hr][/hr]\n\n'
+					? `[size=200][color=rgb(26, 162, 96)][B]App Description[/B][/color][/size]\n\n[code]\n${gplayjson.description}\n[/code]\n[hr][/hr]\n\n`
 					: '';
 
 				// Developer Name
 				let dev = gplayjson.author.name
-					? '[size=200][color=rgb(26, 162, 96)][B]App Details[/B][/color][/size]\n[list]\n[*][B]Developer: [/B] ' +
-					  upperCase(gplayjson.author.name)
+					? `[size=200][color=rgb(26, 162, 96)][B]App Details[/B][/color][/size]\n[list]\n[*][B]Developer: [/B] ${UpperCase(gplayjson.author.name)}`
 					: '';
 
 				// App Category
 				let category = gplayjson.applicationCategory
-					? '\n[*][B]Category: [/B] ' + upperCase(gplayjson.applicationCategory)
+					? `\n[*][B]Category: [/B] ${UpperCase(gplayjson.applicationCategory)}`
 					: '';
 
 				// Age Content Rating
@@ -313,28 +324,22 @@ function generateTemplate() {
 
 				// Required Android Version
 				let requiredAndroid = reqAndr[0].nextElementSibling.innerText
-					? '\n[*][B]Required Android Version: [/B] ' +
-					  reqAndr[0].nextElementSibling.innerText
+					? `\n[*][B]Required Android Version: [/B] ${reqAndr[0].nextElementSibling.innerText}`
 					: '';
 
 				// App Size
 				let size = siz[0].nextElementSibling.innerText
-					? '\n[*][B]Size (From The Play Store): [/B] ' +
-					  siz[0].nextElementSibling.innerText
+					? `\n[*][B]Size (From The Play Store): [/B] ${siz[0].nextElementSibling.innerText}`
 					: '';
 
 				// Latest Version from the Playstore
 				let LatestPlayStoreVersion = curVer[0].nextElementSibling.innerText
-					? '\n[*][B]Latest Google Play Version: [/B] ' +
-					  curVer[0].nextElementSibling.innerText +
-					  '\n[/LIST]\n'
+					? `\n[*][B]Latest Google Play Version: [/B]${curVer[0].nextElementSibling.innerText}\n[/LIST]\n`
 					: '';
 
 				// Add BBCode for "Get this on Google Play Store"
 				link =
-					'[url=' +
-					link +
-					'][fimg=300,115]https://i.postimg.cc/mrWtVGwr/image.png[/fimg][/url]\n\n';
+					`[url=${link}][fimg=300,115]https://i.postimg.cc/mrWtVGwr/image.png[/fimg][/url]\n\n`;
 
 				// Don't add modinfo line if not needed
 				modinfo = modinfo
@@ -362,9 +367,7 @@ function generateTemplate() {
 				}
 
 				let ddl =
-					`[size=200][color=rgb(26, 162, 96)][B]Download Link[/B][/COLOR][/size]\n\n[center]\n` +
-					whichddls +
-					`[/b][/hide][/CENTER]`;
+					`[size=200][color=rgb(26, 162, 96)][B]Download Link[/B][/COLOR][/size]\n\n[center]\n${whichddls}[/b][/hide][/CENTER]`;
 				let updateLog = `\n\n[size=200][color=rgb(26, 162, 96)][B]Update Log[/B][/color][/size]\n[code]\n\n[/code]`;
 				let dump = `${logo}${title}${rating}${reviewscount}${screens}${description}${dev}${category}${ContentRating}${requiredAndroid}${size}${LatestPlayStoreVersion}${link}${modinfo}${VT}${ddl}${updateLog}`;
 
@@ -395,7 +398,6 @@ function generateTemplate() {
 				}
 			},
 		});
-	}
 }
 
 //--- CSS styles make it work...
