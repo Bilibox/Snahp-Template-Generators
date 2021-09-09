@@ -385,7 +385,7 @@ function GenerateTemplate() {
 	if (!playStoreUrl | !virustotalLinks) {
 		let errors = '';
 		errors += !playStoreUrl ? 'No Google Play link Found!' : '';
-		errors += !virustotalLinks == '' ? '\nNo Virustotal Found!' : '';
+		errors += !virustotalLinks ? '\nNo Virustotal Found!' : '';
 		alert(errors);
 		return;
 	}
@@ -393,16 +393,16 @@ function GenerateTemplate() {
 	let titleExtra = mod + unlocked + premium + adfree + lite;
 
 	// Create Prefix placeholder per DDLs
-	var DDLPrefix = '';
+	let titlePrefix = '';
 	var megaDomains = ['mega.nz', 'mega.co.nz']; // In case using old Mega link
 	if (megaDomains.some((el) => downloadLinks.includes(el))) {
-		DDLPrefix += '[Mega]';
+		titlePrefix += '[Mega]';
 	}
 	if (downloadLinks.includes('zippyshare.com')) {
-		DDLPrefix += '[Zippy]';
+		titlePrefix += '[Zippy]';
 	}
 	if (downloadLinks.includes('drive.google.com')) {
-		DDLPrefix += '[Gdrive]';
+		titlePrefix += '[Gdrive]';
 	}
 
 	// Use US version of page for consistency
@@ -416,7 +416,7 @@ function GenerateTemplate() {
 		megaDomains
 	);
 	let bbcode = GenerateBBCode(
-		DDLPrefix,
+		titlePrefix,
 		playStoreUrl,
 		modInfo,
 		titleExtra,
