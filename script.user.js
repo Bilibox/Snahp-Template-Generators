@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        Snahp Android Template Generator
-// @version     1.1.0
+// @version     1.2.0
 // @description Generates a Template for the Android section of Forum.Snahp.it
 // @author      BiliTheBox
 // @icon        https://forum.snahp.it/favicon.ico
@@ -12,6 +12,7 @@
 // @grant       GM_addStyle
 // @grant       GM_xmlhttpRequest
 // @run-at      document-end
+// @connect     play.google.com
 // ==/UserScript==
 
 const htmlTemplate = `
@@ -78,21 +79,21 @@ function Main() {
 	temphtml.insertAdjacentHTML('afterend', htmlTemplate); // Place our HTML under the inputs
 	document.getElementById('hideTemplate').addEventListener(
 		'click',
-		function () {
+		() => {
 			HideTemplate();
 		},
 		false
 	);
 	document.getElementById('showTemplate').addEventListener(
 		'click',
-		function () {
+		() => {
 			ShowTemplate();
 		},
 		false
 	);
 	document.getElementById('generateTemplate').addEventListener(
 		'click',
-		function () {
+		() => {
 			GenerateTemplate();
 		},
 		false
@@ -131,14 +132,30 @@ function FilterRequiredVersion(element) {
 /*fix word casing*/
 function UpperCase(str) {
 	str = str.toLowerCase(); // First make entire string lowercase
-	return str.replace(/(^|\s)\S/g, function (t) {
+	return str.replace(/(^|\s)\S/g, (t) => {
 		// Return Uppercase for every word in String
 		return t.toUpperCase();
 	});
 }
 
+// Asyncronous http requests
+async function RequestUrl(url) {
+	return await new Promise((resolve, reject) => {
+		GM_xmlhttpRequest({
+			method: 'GET',
+			url: url,
+			onload: (response) => {
+				resolve(response);
+			},
+			onerror: (response) => {
+				reject(response);
+			},
+		});
+	});
+}
+
 // Handle BBCode for Screeshots
-function ScreenshotHandler(images) {
+async function ScreenshotHandler(images) {
 	var screenshotBBCode = '';
 	let counter = 0;
 	let fimg = '';
@@ -167,11 +184,10 @@ function ScreenshotHandler(images) {
 			}
 		}
 	}
-	screenshotBBCode = `[size=200][color=rgb(26, 162, 96)][B]Screenshots[/B][/color][/size]\n\n${screenshotBBCode}[/center]\n[hr][/hr]\n\n`;
-	return screenshotBBCode;
+	return `[size=200][color=rgb(26, 162, 96)][B]Screenshots[/B][/color][/size]\n\n${screenshotBBCode}[/center]\n[hr][/hr]\n\n`;
 }
 
-function DownloadLinkHandler(downloadLinks, megaDomains) {
+async function DownloadLinkHandler(downloadLinks, megaDomains) {
 	let downloadLinkBBCode = '[hide][b]';
 	if (downloadLinks == null) {
 		downloadLinkBBCode += '[url=][size=150]Download Link[/size][/url]';
@@ -188,26 +204,163 @@ function DownloadLinkHandler(downloadLinks, megaDomains) {
 			}
 		}
 	}
-	downloadLinkBBCode = `[size=200][color=rgb(26, 162, 96)][B]Download Link[/B][/COLOR][/size]\n\n[center]\n${downloadLinkBBCode}[/b][/hide][/CENTER]`;
-	return downloadLinkBBCode;
+	return `[size=200][color=rgb(26, 162, 96)][B]Download Link[/B][/COLOR][/size]\n\n[center]\n${downloadLinkBBCode}[/b][/hide][/CENTER]\n`;
 }
 
-function VirusTotalHandler(virustotalSplit) {
+async function VirusTotalHandler(virustotalSplit) {
 	let virustotalLinks = '';
 	for (let splitLink of virustotalSplit) {
 		virustotalLinks += `[url=${splitLink}][size=150][color=#40BFFF][B]VirusTotal[/B][/color][/size][/url]\n`;
 	}
-	virustotalLinks = `[size=200][color=rgb(26, 162, 96)][B]Virustotal[/B][/color][/size]\n\n${virustotalLinks}\n\n[hr][/hr]\n\n`;
-	return virustotalLinks;
+	return `[size=200][color=rgb(26, 162, 96)][B]Virustotal[/B][/color][/size]\n\n${virustotalLinks}\n\n[hr][/hr]\n\n`;
+}
+
+async function GenerateBBCode(
+	titlePrefix,
+	playStoreUrl,
+	modInfo,
+	titleExtra,
+	virustotalBBcode,
+	downloadLinkBBcode
+) {
+	let response = await RequestUrl(playStoreUrl);
+	let [page, parser] = [response.responseText, new DOMParser()];
+	let parsedHtml = parser.parseFromString(page, 'text/html');
+	// Grab json from parse
+	var gplayjson = parsedHtml.querySelector(
+		'script[type="application/ld+json"]'
+	).text;
+	gplayjson = JSON.parse(gplayjson);
+	// Turn nodelist into an array
+	var h2 = Array.prototype.slice.call(parsedHtml.querySelectorAll('div'));
+
+	// Filter Function
+	var [appSize, playStoreVersion, requiredVersion] = [
+		h2.filter(FilterSize),
+		h2.filter(FilterCurrentVersion),
+		h2.filter(FilterRequiredVersion),
+	];
+	// Grab all images & find logo
+	let images = parsedHtml.getElementsByTagName('img');
+	let playStoreImages = ScreenshotHandler(images);
+	for (let logoimg of images) {
+		let logoattr = logoimg.alt;
+		if (logoattr == 'Cover art') {
+			var logo = `[CENTER][fimg=180,180]${logoimg.srcset
+				.replace('-rw', '')
+				.replace(' 2x', '')}[/fimg]\n\n`;
+		}
+	}
+	// App Name
+	let title = gplayjson.name
+		? `[COLOR=rgb(26, 162, 96)][B][size=200]${gplayjson.name}[/size][/B][/COLOR]\n`
+		: '';
+	// Review Star Rating
+	try {
+		var rating = gplayjson.aggregateRating.ratingValue
+			? `\n[fimg=50,50]https://i.postimg.cc/g28wfSTs/630px-Green-star-41-108-41-svg.png[/fimg][size=130][B]${Math.floor(
+					gplayjson.aggregateRating.ratingValue
+			  )}/5[/B]`
+			: '';
+	} catch (e) {
+		console.warn(e);
+		rating = '';
+	}
+
+	// Review Count
+	try {
+		var reviewscount = gplayjson.aggregateRating.ratingCount
+			? `[fimg=50,50]https://i.postimg.cc/nV6RDhJ3/Webp-net-resizeimage-002.png[/fimg]${Number(
+					gplayjson.aggregateRating.ratingCount
+			  ).toLocaleString()}[/size]\n\n`
+			: '';
+	} catch (e) {
+		console.warn(e);
+		reviewscount = '';
+	}
+
+	// Grab App Details from Play Store HTML parse
+	// App Description
+	let appDescription = gplayjson.description
+		? `[size=200][color=rgb(26, 162, 96)][B]App Description[/B][/color][/size]\n\n[code]\n${gplayjson.description}\n[/code]\n[hr][/hr]\n\n`
+		: '';
+	// Developer Name
+	let developerName = gplayjson.author.name
+		? `[size=200][color=rgb(26, 162, 96)][B]App Details[/B][/color][/size]\n[list]\n[*][B]Developer: [/B] ${UpperCase(
+				gplayjson.author.name
+		  )}`
+		: '';
+
+	// App Category
+	let playStoreCategory = gplayjson.applicationCategory
+		? `\n[*][B]Category: [/B] ${UpperCase(
+				gplayjson.applicationCategory
+		  ).replace(/\_/g, ' ')}`
+		: '';
+	// Age Content Rating
+	let contentRating = gplayjson.contentRating
+		? '\n[*][B]Content Rating: [/B] ' + gplayjson.contentRating
+		: '';
+	// Required Android Version
+	requiredVersion = requiredVersion[0].nextElementSibling.innerText
+		? `\n[*][B]Required Android Version: [/B] ${requiredVersion[0].nextElementSibling.innerText}`
+		: '';
+	// App Size
+	appSize = appSize[0].nextElementSibling.innerText
+		? `\n[*][B]Size: [/B] ${appSize[0].nextElementSibling.innerText} (Taken from the Google Play Store)`
+		: '';
+	let titleVersion =
+		playStoreVersion[0].nextElementSibling.innerText != 'Varies with device'
+			? ' v' + playStoreVersion[0].nextElementSibling.innerText
+			: '';
+	// Latest Version from the Playstore
+	playStoreVersion = playStoreVersion[0].nextElementSibling.innerText
+		? `\n[*][B]Latest Google Play Version: [/B]${playStoreVersion[0].nextElementSibling.innerText}\n[/LIST]\n`
+		: '';
+
+	// Add BBCode for "Get this on Google Play Store"
+	let playStoreBBCode = `[url=${playStoreUrl}][fimg=300,115]https://i.postimg.cc/mrWtVGwr/image.png[/fimg][/url]\n\n`;
+
+	// Don't add modinfo line if not needed
+	modInfo = modInfo
+		? `[size=200][color=rgb(26, 162, 96)][B]Mod Info[/B][/COLOR][/SIZE]\n\n${modInfo}\n\n[hr][/hr]\n\n`
+		: '';
+	let updateLog = `\n\n[size=200][color=rgb(26, 162, 96)][B]Update Log[/B][/color][/size]\n[code]\n\n[/code]`;
+	return Promise.all([
+		downloadLinkBBcode,
+		playStoreImages,
+		virustotalBBcode,
+	]).then((results) => {
+		return {
+			post: `${logo}${title}${rating}${reviewscount}${results[1]}${appDescription}${developerName}${playStoreCategory}${contentRating}${requiredVersion}${appSize}${playStoreVersion}${playStoreBBCode}${modInfo}${results[2]}${results[0]}${updateLog}`,
+			title: `${titlePrefix}[Android]${gplayjson.name}${titleVersion}${titleExtra} [MB]`,
+		};
+	});
+}
+
+// Submit Generated BBCode to the forum
+function SubmitToForum(forumBBCode, title) {
+	try {
+		document.getElementsByName('message')[0].value = forumBBCode;
+	} catch (err) {
+		alert(
+			'Something went wrong! Please report to my Developer.... I get scared when I crash ☹️' +
+				err
+		);
+	} finally {
+		if (!document.getElementsByName('subject')[0].value) {
+			document.getElementsByName('subject')[0].value = title;
+		}
+	}
 }
 
 function GenerateTemplate() {
 	// Create variables from HTML Input
 	let [
-		link,
-		modinfo,
+		playStoreUrl,
+		modInfo,
 		virustotalLinks,
-		DDLS,
+		downloadLinks,
 		mod,
 		unlocked,
 		adfree,
@@ -216,7 +369,7 @@ function GenerateTemplate() {
 	] = [
 		document.getElementById('GooglePlayLink').value,
 		document.getElementById('ModificationInformation').value,
-		document.getElementById('VirusTotalLink').value.split(' '),
+		document.getElementById('VirusTotalLink').value,
 		document.getElementById('DownloadLink').value,
 		document.querySelector('input[value="mod"]').checked ? ' [Mod]' : '',
 		document.querySelector('input[value="unlocked"]').checked
@@ -233,170 +386,45 @@ function GenerateTemplate() {
 	// Create Prefix placeholder per DDLs
 	var DDLPrefix = '';
 	var megaDomains = ['mega.nz', 'mega.co.nz']; // In case using old Mega link
-	if (megaDomains.some((el) => DDLS.includes(el))) {
+	if (megaDomains.some((el) => downloadLinks.includes(el))) {
 		DDLPrefix += '[Mega]';
 	}
-	if (DDLS.includes('zippyshare.com')) {
+	if (downloadLinks.includes('zippyshare.com')) {
 		DDLPrefix += '[Zippy]';
 	}
-	if (DDLS.includes('drive.google.com')) {
+	if (downloadLinks.includes('drive.google.com')) {
 		DDLPrefix += '[Gdrive]';
 	}
-	DDLS = DDLS.split(' '); // Split into array for Auto DDL detection
 
 	// Error Messages for required fields
-	if (!link | (virustotalLinks[0] == '')) {
+	if (!playStoreUrl | !virustotalLinks) {
 		var errors = '';
-		errors += !link ? 'No Google Play link Found!' : '';
-		errors += virustotalLinks[0] == '' ? '\nNo Virustotal Found!' : '';
+		errors += !playStoreUrl ? 'No Google Play link Found!' : '';
+		errors += !virustotalLinks == '' ? '\nNo Virustotal Found!' : '';
 		alert(errors);
 		return;
 	}
 
 	// Use US version of page for consistency
-	link = link.includes('&hl')
-		? link.replace(/\&.*$/, '&hl=en_US')
-		: link + '&hl=en_US';
+	playStoreUrl = playStoreUrl.includes('&hl')
+		? playStoreUrl.replace(/\&.*$/, '&hl=en_US')
+		: playStoreUrl + '&hl=en_US';
 
-	let virustotalBBCode = VirusTotalHandler(virustotalLinks);
-
-	// Get GPS page & details for post
-	GM_xmlhttpRequest({
-		method: 'GET',
-		url: link,
-		onload: function (response) {
-			let [page, parser] = [response.responseText, new DOMParser()];
-			let parsedHtml = parser.parseFromString(page, 'text/html');
-
-			// Grab json from parse
-			let gplayjson = parsedHtml.querySelector(
-				'script[type="application/ld+json"]'
-			).text;
-			gplayjson = JSON.parse(gplayjson);
-
-			// Turn nodelist into an array
-			let h2 = Array.prototype.slice.call(parsedHtml.querySelectorAll('div'));
-
-			// Filter wanted results
-			let [appSize, playStoreVersion, requiredVersion] = [
-				h2.filter(FilterSize),
-				h2.filter(FilterCurrentVersion),
-				h2.filter(FilterRequiredVersion),
-			];
-
-			// Grab all images & find logo
-			let images = parsedHtml.getElementsByTagName('img');
-			for (let logoimg of images) {
-				let logoattr = logoimg.alt;
-				if (logoattr == 'Cover art') {
-					var logo = `[CENTER][fimg=180,180]${logoimg.srcset
-						.replace('-rw', '')
-						.replace(' 2x', '')}[/fimg]\n\n`;
-				}
-			}
-
-			// App Name
-			let title = gplayjson.name
-				? `[COLOR=rgb(26, 162, 96)][B][size=200]${gplayjson.name}[/size][/B][/COLOR]\n`
-				: '';
-
-			// Review Star Rating
-			try {
-				var rating = gplayjson.aggregateRating.ratingValue
-					? `\n[fimg=50,50]https://i.postimg.cc/g28wfSTs/630px-Green-star-41-108-41-svg.png[/fimg][size=130][B]${Math.floor(
-							gplayjson.aggregateRating.ratingValue
-					  )}/5[/B]`
-					: '';
-			} catch (e) {
-				console.log(e);
-				rating = '';
-			}
-
-			// Review Count
-			try {
-				var reviewscount = gplayjson.aggregateRating.ratingCount
-					? `[fimg=50,50]https://i.postimg.cc/nV6RDhJ3/Webp-net-resizeimage-002.png[/fimg]${Number(
-							gplayjson.aggregateRating.ratingCount
-					  ).toLocaleString()}[/size]\n\n`
-					: '';
-			} catch (e) {
-				console.log(e);
-				reviewscount = '';
-			}
-
-			//Grab Screenshots
-			var screens = ScreenshotHandler(images);
-
-			// Grab App Details from Play Store HTML parse
-			// App Description
-			let description = gplayjson.description
-				? `[size=200][color=rgb(26, 162, 96)][B]App Description[/B][/color][/size]\n\n[code]\n${gplayjson.description}\n[/code]\n[hr][/hr]\n\n`
-				: '';
-
-			// Developer Name
-			let dev = gplayjson.author.name
-				? `[size=200][color=rgb(26, 162, 96)][B]App Details[/B][/color][/size]\n[list]\n[*][B]Developer: [/B] ${UpperCase(
-						gplayjson.author.name
-				  )}`
-				: '';
-
-			// App Category
-			let category = gplayjson.applicationCategory
-				? `\n[*][B]Category: [/B] ${UpperCase(gplayjson.applicationCategory).replace(/\_/g, ' ')}`
-				: '';
-
-			// Age Content Rating
-			let ContentRating = gplayjson.contentRating
-				? '\n[*][B]Content Rating: [/B] ' + gplayjson.contentRating
-				: '';
-
-			// Required Android Version
-			requiredVersion = requiredVersion[0].nextElementSibling.innerText
-				? `\n[*][B]Required Android Version: [/B] ${requiredVersion[0].nextElementSibling.innerText}`
-				: '';
-
-			// App Size
-			appSize = appSize[0].nextElementSibling.innerText
-				? `\n[*][B]Size (From The Play Store): [/B] ${appSize[0].nextElementSibling.innerText}`
-				: '';
-
-			let titleVersion =
-				playStoreVersion[0].nextElementSibling.innerText != 'Varies with device'
-					? ' v' + playStoreVersion[0].nextElementSibling.innerText
-					: '';
-			// Latest Version from the Playstore
-			playStoreVersion = playStoreVersion[0].nextElementSibling.innerText
-				? `\n[*][B]Latest Google Play Version: [/B]${playStoreVersion[0].nextElementSibling.innerText}\n[/LIST]\n`
-				: '';
-
-			// Add BBCode for "Get this on Google Play Store"
-			link = `[url=${link}][fimg=300,115]https://i.postimg.cc/mrWtVGwr/image.png[/fimg][/url]\n\n`;
-
-			// Don't add modinfo line if not needed
-			modinfo = modinfo
-				? `[size=200][color=rgb(26, 162, 96)][B]Mod Info[/B][/COLOR][/SIZE]\n\n${modinfo}\n\n[hr][/hr]\n\n`
-				: '';
-
-			let updateLog = `\n\n[size=200][color=rgb(26, 162, 96)][B]Update Log[/B][/color][/size]\n[code]\n\n[/code]`;
-			let ddl = DownloadLinkHandler(DDLS, megaDomains);
-			let forumBBCode = `${logo}${title}${rating}${reviewscount}${screens}${description}${dev}${category}${ContentRating}${requiredVersion}${appSize}${playStoreVersion}${link}${modinfo}${virustotalBBCode}${ddl}${updateLog}`;
-			// Try to paste to page. Alert user if error
-			try {
-				document.getElementsByName('message')[0].value = forumBBCode;
-			} catch (err) {
-				alert(
-					'Something went wrong! Please report to my Developer.... I get scared when I crash ☹️' +
-						err
-				);
-			} finally {
-				let xf_title_value = document.getElementsByName('subject')[0].value;
-				if (!xf_title_value) {
-					document.getElementsByName(
-						'subject'
-					)[0].value = `${DDLPrefix}[Android]${gplayjson.name}${titleVersion}${titleExtra} [MB]`;
-				}
-			}
-		},
+	let virustotalBBCode = VirusTotalHandler(virustotalLinks.split(' '));
+	let downloadLinkBBCode = DownloadLinkHandler(
+		downloadLinks.split(' '),
+		megaDomains
+	);
+	let bbcode = GenerateBBCode(
+		DDLPrefix,
+		playStoreUrl,
+		modInfo,
+		titleExtra,
+		virustotalBBCode,
+		downloadLinkBBCode
+	);
+	bbcode.then((results) => {
+		SubmitToForum(results.post, results.title);
 	});
 }
 
