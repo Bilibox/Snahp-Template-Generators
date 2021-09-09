@@ -5,7 +5,7 @@ Android Thread Template Generator Userscript
 
 ## Requirements:
 A userscript manager + installing the script
-<a href="https://github.com/Bilibox/Snahp-Template-Generators/blob/Android/script.user.js">Click to install script </a>
+<a href="https://github.com/Bilibox/Snahp-Template-Generators/raw/Android/script.user.js">Click to install script </a>
 <small>(A userscript engine, like [Violentmonkey](https://violentmonkey.github.io/get-it/) or [Tampermonkey](https://www.tampermonkey.net/))</small>
 
 # How To Use
