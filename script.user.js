@@ -381,6 +381,15 @@ function GenerateTemplate() {
 			? ' [Premium]'
 			: '',
 	];
+	// Error Messages for required fields
+	if (!playStoreUrl | !virustotalLinks) {
+		let errors = '';
+		errors += !playStoreUrl ? 'No Google Play link Found!' : '';
+		errors += !virustotalLinks == '' ? '\nNo Virustotal Found!' : '';
+		alert(errors);
+		return;
+	}
+
 	let titleExtra = mod + unlocked + premium + adfree + lite;
 
 	// Create Prefix placeholder per DDLs
@@ -394,15 +403,6 @@ function GenerateTemplate() {
 	}
 	if (downloadLinks.includes('drive.google.com')) {
 		DDLPrefix += '[Gdrive]';
-	}
-
-	// Error Messages for required fields
-	if (!playStoreUrl | !virustotalLinks) {
-		var errors = '';
-		errors += !playStoreUrl ? 'No Google Play link Found!' : '';
-		errors += !virustotalLinks == '' ? '\nNo Virustotal Found!' : '';
-		alert(errors);
-		return;
 	}
 
 	// Use US version of page for consistency
