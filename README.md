@@ -1,4 +1,6 @@
 # Snahp OMDB Template Generator
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FBilibox%2FSnahp-Template-Generators.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FBilibox%2FSnahp-Template-Generators?ref=badge_shield)
+
 OMDB Thread Template Generator userscript
 <!-- keep image height ~ 500px -->
 ![](https://i.postimg.cc/Fsds4G10/image.png)
@@ -38,3 +40,7 @@ Enter your mediainfo. You can get mediainfo locally using [MediaInfo](https://me
 Once you have set everything up, press the "Generate Template" button and the post will be pasted onto the site. The Title will be filled out with the Name of the Movie or Show and the Year of release. You will have to add all the other required information yourself.
 Be sure to add your download links at the bottom and remove any lines that aren't used. EG: If I only have a Mega DL link I will remove the Gdrive and Zippyshare lines.
 If you have not selected anything for the IMDB field (Either clicked on a name or entered a proper TT ID number) You will be prompted with an alert box telling you so.
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FBilibox%2FSnahp-Template-Generators.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FBilibox%2FSnahp-Template-Generators?ref=badge_large)
