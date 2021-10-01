@@ -60,7 +60,7 @@ const omdbinput = `
 `;
 
 function main() {
-	GM.getValue('APIKEY', 'foo').then(value => {
+	GM.getValue('APIKEY', 'foo').then((value) => {
 		var tabURL = window.location.href;
 		if (tabURL.includes('preview')) {
 			return;
@@ -73,7 +73,7 @@ function main() {
 			document.getElementById('title').className += 'input';
 		}
 		sectionSearch(APIVALUE, tabURL);
-		$(document).on('keydown', function(event) {
+		$(document).on('keydown', function (event) {
 			if (event.key == 'Escape') {
 				$('#OmdbGenerator').hide();
 				document.getElementById('gmShowTemplate').style.display = 'block';
@@ -111,11 +111,11 @@ function sectionSearch(APIVALUE, tabURL) {
 		type: 'category',
 		apiSettings: {
 			url: query,
-			onResponse: function(myfunc) {
+			onResponse: function (myfunc) {
 				var response = {
-					results: {}
+					results: {},
 				};
-				$.each(myfunc.Search, function(index, item) {
+				$.each(myfunc.Search, function (index, item) {
 					var category = item.Type.toUpperCase() || 'Unknown',
 						maxResults = 10;
 					if (index >= maxResults) {
@@ -124,28 +124,28 @@ function sectionSearch(APIVALUE, tabURL) {
 					if (response.results[category] === undefined) {
 						response.results[category] = {
 							name: '~~~~~~~~~~' + category + '~~~~~~~~~~',
-							results: []
+							results: [],
 						};
 					}
 					var Name = item.Title + ' (' + item.Year + ')';
 					response.results[category].results.push({
 						title: Name,
 						description: Name,
-						imdbID: item.imdbID
+						imdbID: item.imdbID,
 					});
 				});
 				return response;
-			}
+			},
 		},
 		fields: {
 			results: 'results',
-			title: 'name'
+			title: 'name',
 		},
-		onSelect: function(response) {
+		onSelect: function (response) {
 			$('#hiddenIID').val(response.imdbID);
 			$('#searchID').val(response.title);
 		},
-		minCharacters: 3
+		minCharacters: 3,
 	});
 }
 
@@ -190,7 +190,7 @@ function generateTemplate(APIVALUE) {
 		GM_xmlhttpRequest({
 			method: 'GET',
 			url: `http://www.omdbapi.com/?apikey=${APIVALUE}&i=${IID}&plot=full&y&r=json`,
-			onload: function(response) {
+			onload: function (response) {
 				let json = JSON.parse(response.responseText);
 				let poster =
 					json.Poster && json.Poster !== 'N/A'
@@ -289,7 +289,7 @@ function generateTemplate(APIVALUE) {
 							json.Title + ' (' + json.Year + ')';
 					}
 				}
-			}
+			},
 		});
 	}
 }
