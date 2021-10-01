@@ -18,54 +18,53 @@
 main();
 
 const htmlTemplate = `
-<button id="gmShowTemplate" name="templateButton" style="display:none" type="button">Show</button>
-<dr style="clear: left;" id="OmdbGenerator">
-<dt> <label id="imdbsearch" for="SemanticSearch">Imdb Search:</label> </dt>
-<dd> <input type="text" id="hiddenIID" value="" style="display:none">
-<div class="ui search" id="searchBox" size="45">
-<input type="text" class="prompt inputbox autowidth" id="searchID" size="45" placeholder="IMDB ID, Title, or Link"></input>
-<div class="results inputbox" id="search_results" size="45" style="display:none;"></div> </dd>
-<dt> <label id="screenfill" for="Screenlinks">Screenshot Links:</label> </dt>
-<dd> <input type="text" id="screensLinks" value="" class="inputbox autowidth" size="45"></input> </dd>
-<dt> <label id="mediaInf" for="fileMediainfo">Mediainfo:</label> </dt>
-<dd> <textarea rows="1" style="width:100%;" class="inputbox autowidth" id="mediaInfo" size="45"></textarea> </dd>
+<button id="show-template" name="template-button" style="display:none" type="button">Show</button>
+<dr style="clear: left;" id="omdb-generator">
+<dt> <label id="imdb-search" for="Semantic Search">Imdb Search:</label> </dt>
+<dd> <input type="text" id="hidden-id-value" value="" style="display:none">
+<div class="ui search" id="search-box" size="45">
+<input type="text" class="prompt inputbox autowidth" id="omdb-search-box" size="45" placeholder="IMDB ID, Title, or Link"></input>
+<div class="results inputbox" id="search-results" size="45" style="display:none;"></div> </dd>
+<dt> <label id="screen-fill" for="Screenshots">Screenshot Links:</label> </dt>
+<dd> <input type="text" id="screen-links" value="" class="inputbox autowidth" size="45"></input> </dd>
+<dt> <label id="mediainfo-output" for="Mediainfo Text Output">Mediainfo:</label> </dt>
+<dd> <textarea rows="1" style="width:100%;" class="inputbox autowidth" id="mediainfo-textarea" size="45"></textarea> </dd>
 <dt><label> </label></dt>
 <dd>
-<button class="button--primary button button--icon" id="gmGenerate" name="templateButton" type="button">Generate Template</button>
+<button class="button--primary button button--icon" id="generate-template" name="template-button" type="button">Generate Template</button>
 &nbsp;
-<button class="button--primary button button--icon" id="gmClearBtn" name="templateButton" type="reset">Clear</button>
+<button class="button--primary button button--icon" id="clear-button" name="template-button" type="reset">Clear</button>
 &nbsp;
-<button class="button--primary button button--icon" id="gmHideTemplate" name="templateButton" type="button">Hide</button>
+<button class="button--primary button button--icon" id="hide-template" name="template-button" type="button">Hide</button>
 &nbsp;
 </dd>
 </dr>
 `;
 
 const omdbinput = `
-<button id="gmShowTemplate" name="templateButton" style="display:none" type="button">Show</button>
-<dr style="clear: left;" id="OmdbGenerator">
+<button id="show-template" name="template-button" style="display:none" type="button">Show</button>
+<dr style="clear: left;" id="omdb-generator">
 <dt>
-<label id="Keylabel" for="omdbapi">OMDB Key:</label>
+<label id="key-label" for="Omdb Api Key">OMDB Key:</label>
 </dt>
 <dd>
-<input type="text" id="omdbKey" value="" class="inputbox autowidth"/>
-<button class="button--primary button button--icon" id="gmSaveKey" name="templateButton" type="button">Save Key</button>
+<input type="text" id="omdb-api-key" value="" class="inputbox autowidth"/>
+<button class="button--primary button button--icon" id="save-key" name="template-button" type="button">Save Key</button>
 &nbsp;
-<button class="button--primary button button--icon" id="gmClearBtn" name="templateButton" type="reset">Clear</button>
+<button class="button--primary button button--icon" id="clear-button" name="template-button" type="reset">Clear</button>
 &nbsp;
-<button class="button--primary button button--icon" id="gmHideTemplate" name="templateButton" type="button">Hide</button>
+<button class="button--primary button button--icon" id="hide-template" name="template-button" type="button">Hide</button>
 &nbsp;
 </dd>
 </dr>
 `;
 
 function main() {
-	GM.getValue('APIKEY', 'foo').then((value) => {
+	GM.getValue('APIKEY', 'foo').then((APIVALUE) => {
 		var tabURL = window.location.href;
 		if (tabURL.includes('preview')) {
 			return;
 		}
-		var APIVALUE = value;
 		const htmlpush = document.getElementsByTagName('dl')[0];
 		const titlechange = document.getElementById('title');
 		htmlpush.innerHTML += APIVALUE !== 'foo' ? htmlTemplate : omdbinput;
@@ -75,24 +74,24 @@ function main() {
 		sectionSearch(APIVALUE, tabURL);
 		$(document).on('keydown', function (event) {
 			if (event.key == 'Escape') {
-				$('#OmdbGenerator').hide();
-				document.getElementById('gmShowTemplate').style.display = 'block';
+				$('#omdb-generator').hide();
+				document.getElementById('show-template').style.display = 'block';
 			}
 		});
-		$('#gmHideTemplate').click(() => hideTemplate());
-		$('#gmShowTemplate').click(() => showTemplate());
-		$('#gmSaveKey').click(() => saveApiKey(APIVALUE, htmlpush));
-		$('#gmGenerate').click(() => generateTemplate(APIVALUE));
+		$('#hide-template').click(() => hideTemplate());
+		$('#show-template').click(() => showTemplate());
+		$('#save-key').click(() => saveApiKey(APIVALUE, htmlpush));
+		$('#generate-template').click(() => generateTemplate(APIVALUE));
 	});
 }
 
 function showTemplate() {
-	document.getElementById('gmShowTemplate').style.display = 'none';
-	$('#OmdbGenerator').show();
+	document.getElementById('show-template').style.display = 'none';
+	$('#omdb-generator').show();
 }
 function hideTemplate() {
-	document.getElementById('gmShowTemplate').style.display = 'block';
-	$('#OmdbGenerator').hide();
+	document.getElementById('show-template').style.display = 'block';
+	$('#omdb-generator').hide();
 }
 
 function sectionSearch(APIVALUE, tabURL) {
@@ -107,7 +106,7 @@ function sectionSearch(APIVALUE, tabURL) {
 	} else {
 		query = `https://www.omdbapi.com/?apikey=${APIVALUE}&r=JSON&s={query}`;
 	}
-	$('#searchBox').search({
+	$('#search-box').search({
 		type: 'category',
 		apiSettings: {
 			url: query,
@@ -142,8 +141,8 @@ function sectionSearch(APIVALUE, tabURL) {
 			title: 'name',
 		},
 		onSelect: function (response) {
-			$('#hiddenIID').val(response.imdbID);
-			$('#searchID').val(response.title);
+			$('#hidden-id-value').val(response.imdbID);
+			$('#omdb-search-box').val(response.title);
 		},
 		minCharacters: 3,
 	});
@@ -151,25 +150,25 @@ function sectionSearch(APIVALUE, tabURL) {
 
 function saveApiKey(APIVALUE, htmlpush) {
 	if (APIVALUE == 'foo') {
-		let omdbKey = $('#omdbKey').val();
+		let omdbKey = $('#omdb-api-key').val();
 		if (omdbKey) {
 			GM.setValue('APIKEY', omdbKey);
 		} else {
 			alert("You Didn't Enter Your Key!!");
 		}
-		document.getElementById('OmdbGenerator').remove();
-		document.getElementById('gmShowTemplate').remove();
+		document.getElementById('omdb-generator').remove();
+		document.getElementById('show-template').remove();
 		main();
 	}
 }
 
 function generateTemplate(APIVALUE) {
-	var IID = $('#hiddenIID').val();
-	var screenshots = $('#screensLinks').val();
+	var IID = $('#hidden-id-value').val();
+	var screenshots = $('#screen-links').val();
 	var uToob = $('#ytLink').val();
-	var MEDIAINFO = $('#mediaInfo').val();
+	var MEDIAINFO = $('#mediainfo-textarea').val();
 	if (!IID) {
-		IID = $('#searchID').val();
+		IID = $('#omdb-search-box').val();
 		if (IID.includes('imdb')) {
 			IID = IID.match(/tt\d+/)[0];
 		}
