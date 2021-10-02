@@ -18,6 +18,7 @@
 // @grant       GM_xmlhttpRequest
 // @grant       GM.setValue
 // @grant       GM.getValue
+// @connect     omdbapi.com
 // ==/UserScript==
 
 Main();
@@ -330,7 +331,7 @@ function GenerateTemplate(apiKey) {
 	var [imdbID, screenshots, mediainfo] = [
 		document.getElementById('hidden-id-value').value
 			? document.getElementById('hidden-id-value').value
-			: document.getElementById('searchID').value,
+			: document.getElementById('omdb-search-box').value,
 		document.getElementById('screen-links').value,
 		document.getElementById('mediainfo-textarea').value,
 	];
@@ -428,7 +429,7 @@ function GenerateTemplate(apiKey) {
 [url=][color=#00FF00]Gdrive[/color][/url]
 [/b][/hide]
 [/center]`;
-			let dump = `${poster}${fullName}${imdbId}${rating}${imdbvotes}${plot}${screen}
+			let dump = `${poster}${fullName}${imdbId}${rating}${imdbvotes}${plot}${screenshots}
 [hr][/hr][size=150][color=#fac51c][b]Movie Info[/b][/color][/size]\n
 [LIST][*]${rated}${genre}${director}${writer}${actors}${released}${runtime}${production}[/LIST]\n${mediainfo}${ddl}`;
 			try {
