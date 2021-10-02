@@ -5,6 +5,7 @@
 // @author      BiliTheBox
 // @icon        https://forum.snahp.it/favicon.ico
 // @homepage    https://github.com/Bilibox/Snahp-Template-Generators/
+// @homepageURL https://github.com/Bilibox/Snahp-Template-Generators/
 // @supportURL  https://github.com/Bilibox/Snahp-Template-Generators/issues/
 // @updateURL   https://github.com/Bilibox/Snahp-Template-Generators/raw/Omdb/script.user.js
 // @downloadURL https://github.com/Bilibox/Snahp-Template-Generators/raw/Omdb/script.user.js
@@ -24,15 +25,21 @@ main();
 const htmlTemplate = `
 <button id="show-template" name="template-button" style="display:none" type="button">Show</button>
 <dr style="clear: left;" id="omdb-generator">
+<dl style="clear: left;">
 <dt> <label id="imdb-search" for="Semantic Search">Imdb Search:</label> </dt>
 <dd> <input type="text" id="hidden-id-value" value="" style="display:none">
 <div class="ui search" id="search-box" size="45">
 <input type="text" class="prompt inputbox autowidth" id="omdb-search-box" size="45" placeholder="IMDB ID, Title, or Link"></input>
 <div class="results inputbox" id="search-results" size="45" style="display:none;"></div> </dd>
+</dl>
+<dl style="clear: left;">
 <dt> <label id="screen-fill" for="Screenshots">Screenshot Links:</label> </dt>
 <dd> <input type="text" id="screen-links" value="" class="inputbox autowidth" size="45"></input> </dd>
+</dl>
+<dl style="clear: left;">
 <dt> <label id="mediainfo-output" for="Mediainfo Text Output">Mediainfo:</label> </dt>
 <dd> <textarea rows="1" style="width:100%;" class="inputbox autowidth" id="mediainfo-textarea" size="45"></textarea> </dd>
+</dl>
 <dt><label> </label></dt>
 <dd>
 <button class="button--primary button button--icon" id="generate-template" name="template-button" type="button">Generate Template</button>
@@ -297,23 +304,22 @@ function generateTemplate(APIVALUE) {
 	}
 }
 
-//--- CSS styles make it work...
-GM_addStyle(
-	'                                         \
-    @media screen and (min-width: 300px) {    \
-      .inputbox{                              \
-            max-width:330px;                  \
-            }                                 \
-      .result{                                \
-            max-height:10px;                  \
-            display:unset;                    \
-      }                                       \
-      .content{                               \
-            overflow:unset;                   \
-            min-height:unset;                 \
-            cursor:pointer;                   \
-            padding-bottom:unset;             \
-            line-height:unset;                \
-}                                             \
-'
-);
+// Add css to our elements
+GM_addStyle(`
+@media screen and (min-width: 300px) {
+	.inputbox {
+		max-width: 330px;
+	}
+	.result {
+		max-height: 10px;
+		display: unset;
+	}
+	.content {
+		overflow: unset;
+		min-height: unset;
+		cursor: pointer;
+		padding-bottom: unset;
+		line-height: unset;
+	}
+}
+`);
