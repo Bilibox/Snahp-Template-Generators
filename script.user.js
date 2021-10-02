@@ -102,7 +102,7 @@ function Main() {
 			false
 		);
 		if (apiKey !== 'foo') {
-			SectionSearch(apiKey);
+			SectionSearch(apiKey, tabURL);
 			document.getElementById('generate-template').addEventListener(
 				'click',
 				() => {
@@ -131,19 +131,21 @@ function HideTemplate() {
 	$('#omdb-generator').hide();
 }
 
-function SectionSearch(APIVALUE, tabURL) {
-	var sectionCheck = tabURL.match(/\d+/, '');
-	var Movies = '26 29 30 42 55 56 66 72 73 88';
-	var Series = '31 32 33 57 61 62 64 65 74 75 84';
+function SectionSearch(apiKey, tabURL) {
+	const section = parseInt(tabURL.match(/\d+/, '')[0]);
+	const [movies, series] = [
+		[26, 29, 30, 30, 42, 55, 56, 66, 72, 73, 88],
+		[31, 32, 33, 57, 61, 62, 64, 65, 74, 75, 84],
+	];
 	var query;
-	if (Series.includes(sectionCheck)) {
-		query = `https://www.omdbapi.com/?apikey=${APIVALUE}&r=JSON&s={query}&type=series`;
+	if (series.includes(section)) {
+		query = `https://www.omdbapi.com/?apikey=${apiKey}&r=JSON&s={query}&type=series`;
 		sectionType = 'series';
-	} else if (Movies.includes(sectionCheck)) {
-		query = `https://www.omdbapi.com/?apikey=${APIVALUE}&r=JSON&s={query}&type=movie`;
+	} else if (movies.includes(section)) {
+		query = `https://www.omdbapi.com/?apikey=${apiKey}&r=JSON&s={query}&type=movie`;
 		sectionType = 'movies';
 	} else {
-		query = `https://www.omdbapi.com/?apikey=${APIVALUE}&r=JSON&s={query}`;
+		query = `https://www.omdbapi.com/?apikey=${apiKey}&r=JSON&s={query}`;
 		sectionType = 'unknown';
 	}
 	$('#search-box').search({
