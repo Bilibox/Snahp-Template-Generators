@@ -20,7 +20,7 @@
 // @grant       GM.getValue
 // ==/UserScript==
 
-main();
+Main();
 
 const htmlTemplate = `
 <button id="show-template" name="template-button" style="display:none" type="button">Show</button>
@@ -70,7 +70,7 @@ const omdbinput = `
 </dr>
 `;
 
-function main() {
+function Main() {
 	GM.getValue('APIKEY', 'foo').then((APIVALUE) => {
 		var tabURL = window.location.href;
 		if (tabURL.includes('preview')) {
@@ -82,30 +82,30 @@ function main() {
 		if (titlechange) {
 			document.getElementById('title').className += 'input';
 		}
-		sectionSearch(APIVALUE, tabURL);
+		SectionSearch(APIVALUE, tabURL);
 		$(document).on('keydown', function (event) {
 			if (event.key == 'Escape') {
 				$('#omdb-generator').hide();
 				document.getElementById('show-template').style.display = 'block';
 			}
 		});
-		$('#hide-template').click(() => hideTemplate());
-		$('#show-template').click(() => showTemplate());
-		$('#save-key').click(() => saveApiKey(APIVALUE, htmlpush));
-		$('#generate-template').click(() => generateTemplate(APIVALUE));
+		$('#hide-template').click(() => HideTemplate());
+		$('#show-template').click(() => ShowTemplate());
+		$('#save-key').click(() => SaveApiKey(APIVALUE, htmlpush));
+		$('#generate-template').click(() => GenerateTemplate(APIVALUE));
 	});
 }
 
-function showTemplate() {
+function ShowTemplate() {
 	document.getElementById('show-template').style.display = 'none';
 	$('#omdb-generator').show();
 }
-function hideTemplate() {
+function HideTemplate() {
 	document.getElementById('show-template').style.display = 'block';
 	$('#omdb-generator').hide();
 }
 
-function sectionSearch(APIVALUE, tabURL) {
+function SectionSearch(APIVALUE, tabURL) {
 	var sectionCheck = tabURL.match(/\d+/, '');
 	var Movies = '26 29 30 42 55 56 66 72 73 88';
 	var Series = '31 32 33 57 61 62 64 65 74 75 84';
@@ -159,7 +159,7 @@ function sectionSearch(APIVALUE, tabURL) {
 	});
 }
 
-function saveApiKey(APIVALUE, htmlpush) {
+function SaveApiKey(APIVALUE, htmlpush) {
 	if (APIVALUE == 'foo') {
 		let omdbKey = $('#omdb-api-key').val();
 		if (omdbKey) {
@@ -169,11 +169,11 @@ function saveApiKey(APIVALUE, htmlpush) {
 		}
 		document.getElementById('omdb-generator').remove();
 		document.getElementById('show-template').remove();
-		main();
+		Main();
 	}
 }
 
-function generateTemplate(APIVALUE) {
+function GenerateTemplate(APIVALUE) {
 	var IID = $('#hidden-id-value').val();
 	var screenshots = $('#screen-links').val();
 	var uToob = $('#ytLink').val();
