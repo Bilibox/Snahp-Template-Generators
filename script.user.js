@@ -173,6 +173,15 @@ function SaveApiKey(APIVALUE) {
 		Main();
 	}
 }
+// Handle BBCode for Screenshots
+function ScreenshotHandler(screenshots) {
+	var screen = `\n[hr][/hr][size=150][color=#fac51c][b]Screenshots[/b][/color][/size]\n\n`;
+	for (let ss of screenshots) {
+		screen += `[img]${ss}[/img]`;
+	}
+	screen += `\n`;
+	return screen;
+}
 
 // Parses Mediainfo for Title values
 function ParseMediaInfo(mediaInfo, premadeTitle) {
@@ -265,16 +274,7 @@ function GenerateTemplate(APIVALUE) {
 	if (imdbID.includes('imdb')) {
 		imdbID = imdbID.match(/tt\d+/)[0];
 	}
-	if (screenshots) {
-		screenshots = screenshots.split(' ');
-		var screen = `\n[hr][/hr][size=150][color=#fac51c][b]Screenshots[/b][/color][/size]\n\n`;
-		for (let ss of screenshots) {
-			screen += `[img]${ss}[/img]`;
-		}
-		screen += `\n`;
-	} else {
-		screen = '';
-	}
+	screenshots = screenshots ? ScreenshotHandler(screenshots.split(' ')) : '';
 	GM_xmlhttpRequest({
 		method: 'GET',
 		url: `http://www.omdbapi.com/?apikey=${APIVALUE}&i=${imdbID}&plot=full&y&r=json`,
