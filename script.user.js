@@ -79,11 +79,7 @@ function Main() {
 			return;
 		}
 		const htmlpush = document.getElementsByTagName('dl')[0];
-		const titlechange = document.getElementById('title');
 		htmlpush.innerHTML += APIVALUE !== 'foo' ? htmlTemplate : omdbinput;
-		if (titlechange) {
-			document.getElementById('title').className += 'input';
-		}
 		SectionSearch(APIVALUE, tabURL);
 		$(document).on('keydown', function (event) {
 			if (event.key == 'Escape') {
@@ -120,7 +116,7 @@ function SectionSearch(APIVALUE, tabURL) {
 		sectionType = 'movies';
 	} else {
 		query = `https://www.omdbapi.com/?apikey=${APIVALUE}&r=JSON&s={query}`;
-		sectionType = 'unknown'
+		sectionType = 'unknown';
 	}
 	$('#search-box').search({
 		type: 'category',
@@ -255,18 +251,19 @@ function ParseMediaInfo(mediaInfo, premadeTitle) {
 }
 
 function GenerateTemplate(APIVALUE) {
-	var imdbID = $('#hidden-id-value').val();
-	var screenshots = $('#screen-links').val();
-	var mediainfo = $('#mediainfo-textarea').val();
-	if (!imdbID) {
-		imdbID = $('#omdb-search-box').val();
-		if (imdbID.includes('imdb')) {
-			imdbID = imdbID.match(/tt\d+/)[0];
-		}
-	}
+	var [imdbID, screenshots, mediainfo] = [
+		document.getElementById('hidden-id-value').value
+			? document.getElementById('hidden-id-value').value
+			: document.getElementById('searchID').value,
+		document.getElementById('screen-links').value,
+		document.getElementById('mediainfo-textarea').value,
+	];
 	if (!imdbID) {
 		alert("You Didn't Select A Title or Enter a IMDB ID!");
 	} else {
+		if (imdbID.includes('imdb')) {
+			imdbID = imdbID.match(/tt\d+/)[0];
+		}
 		if (screenshots) {
 			screenshots = screenshots.split(' ');
 			var screen = `\n[hr][/hr][size=150][color=#fac51c][b]Screenshots[/b][/color][/size]\n\n`;
@@ -293,10 +290,7 @@ function GenerateTemplate(APIVALUE) {
 						"You Messed Up! Check That You've Entered Something Into The IMDB Field!"
 					);
 				}
-				let year =
-					json.Year && json.Year !== 'N/A'
-						? ` (${json.Year})`
-						: '';
+				let year = json.Year && json.Year !== 'N/A' ? ` (${json.Year})` : '';
 				let fullName = `[color=#fac51c][b][size=150][url='/search.php?keywords=${imdbID}&sf=titleonly']${title}${year}[/url][/size][/b][/color]\n`;
 				let imdbId =
 					json.imdbID && json.imdbID !== 'N/A'
@@ -373,8 +367,7 @@ function GenerateTemplate(APIVALUE) {
 					document.getElementsByName('message')[0].value = dump;
 				} catch (err) {
 					alert(
-						'Something went wrong! Please report to my Developer.... I get scared when I crash ☹️' +
-							err
+						`Something went wrong! Please report to my Developer.... I get scared when I crash ☹️ ${err}`
 					);
 				} finally {
 					if (!titleBool) {
