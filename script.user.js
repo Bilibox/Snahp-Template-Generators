@@ -70,6 +70,8 @@ const omdbinput = `
 </dr>
 `;
 
+var sectionType;
+
 function Main() {
 	GM.getValue('APIKEY', 'foo').then((APIVALUE) => {
 		var tabURL = window.location.href;
@@ -112,10 +114,13 @@ function SectionSearch(APIVALUE, tabURL) {
 	var query;
 	if (Series.includes(sectionCheck)) {
 		query = `https://www.omdbapi.com/?apikey=${APIVALUE}&r=JSON&s={query}&type=series`;
+		sectionType = 'series';
 	} else if (Movies.includes(sectionCheck)) {
 		query = `https://www.omdbapi.com/?apikey=${APIVALUE}&r=JSON&s={query}&type=movie`;
+		sectionType = 'movies';
 	} else {
 		query = `https://www.omdbapi.com/?apikey=${APIVALUE}&r=JSON&s={query}`;
+		sectionType = 'unknown'
 	}
 	$('#search-box').search({
 		type: 'category',
@@ -250,17 +255,16 @@ function ParseMediaInfo(mediaInfo, premadeTitle) {
 }
 
 function GenerateTemplate(APIVALUE) {
-	var IID = $('#hidden-id-value').val();
+	var imdbID = $('#hidden-id-value').val();
 	var screenshots = $('#screen-links').val();
-	var uToob = $('#ytLink').val();
 	var mediainfo = $('#mediainfo-textarea').val();
-	if (!IID) {
-		IID = $('#omdb-search-box').val();
-		if (IID.includes('imdb')) {
-			IID = IID.match(/tt\d+/)[0];
+	if (!imdbID) {
+		imdbID = $('#omdb-search-box').val();
+		if (imdbID.includes('imdb')) {
+			imdbID = imdbID.match(/tt\d+/)[0];
 		}
 	}
-	if (!IID) {
+	if (!imdbID) {
 		alert("You Didn't Select A Title or Enter a IMDB ID!");
 	} else {
 		if (screenshots) {
@@ -275,7 +279,7 @@ function GenerateTemplate(APIVALUE) {
 		}
 		GM_xmlhttpRequest({
 			method: 'GET',
-			url: `http://www.omdbapi.com/?apikey=${APIVALUE}&i=${IID}&plot=full&y&r=json`,
+			url: `http://www.omdbapi.com/?apikey=${APIVALUE}&i=${imdbID}&plot=full&y&r=json`,
 			onload: function (response) {
 				let json = JSON.parse(response.responseText);
 				let poster =
@@ -283,7 +287,7 @@ function GenerateTemplate(APIVALUE) {
 						? '[center][img]' + json.Poster + '[/img]\n'
 						: '';
 				if (json.Title && json.Title !== 'N/A') {
-					var title = '[color=#fac51c][b][size=150]' + json.Title;
+					var title = `${json.Title}`;
 				} else {
 					alert(
 						"You Messed Up! Check That You've Entered Something Into The IMDB Field!"
@@ -291,8 +295,9 @@ function GenerateTemplate(APIVALUE) {
 				}
 				let year =
 					json.Year && json.Year !== 'N/A'
-						? json.Year + ')[/size][/b][/color]\n'
+						? ` (${json.Year})`
 						: '';
+				let fullName = `[color=#fac51c][b][size=150][url='/search.php?keywords=${imdbID}&sf=titleonly']${title}${year}[/url][/size][/b][/color]\n`;
 				let imdbId =
 					json.imdbID && json.imdbID !== 'N/A'
 						? '[url=https://www.imdb.com/title/' +
@@ -347,15 +352,13 @@ function GenerateTemplate(APIVALUE) {
 					json.Production && json.Production !== 'N/A'
 						? '[*][B]Production: [/B] ' + json.Production + '\n'
 						: '';
-				let titleBool = !document.getElementsByClassName('subject')[0].value;
+				let titleBool = !document.getElementsByName('subject')[0].value;
 				let premadeTitle = titleBool ? `${json.Title} (${json.Year})` : '';
-				if (titleBool && mediaInfo) {
-					premadeTitle = ParseMediaInfo(mediaInfo, premadeTitle);
+				if (titleBool && mediainfo) {
+					premadeTitle = ParseMediaInfo(mediainfo, premadeTitle);
 				}
-				let mediainf = mediainfo
-					? '[hr][/hr][size=150][color=#fac51c][b]Media Info[/b][/color][/size]\n\n [mediainfo]' +
-					  mediainfo +
-					  '\n[/mediainfo]\n'
+				mediainfo = mediainfo
+					? `[hr][/hr][size=150][color=#fac51c][b]Media Info[/b][/color][/size]\n\n [mediainfo]${mediainfo}\n[/mediainfo]\n`
 					: '';
 				let ddl = `[hr][/hr][center][size=150][color=#fac51c][b]Download Link[/b][/color][/size]\n
 [hide][b][url=][color=#FF0000]MEGA[/color][/url]
@@ -363,9 +366,9 @@ function GenerateTemplate(APIVALUE) {
 [url=][color=#00FF00]Gdrive[/color][/url]
 [/b][/hide]
 [/center]`;
-				let dump = `${poster}${title} (${year}${imdbId} ${rating}${imdbvotes}${plot}${screen}
+				let dump = `${poster}${fullName}${imdbId}${rating}${imdbvotes}${plot}${screen}
 [hr][/hr][size=150][color=#fac51c][b]Movie Info[/b][/color][/size]\n
-[LIST][*]${rated}${genre}${director}${writer}${actors}${released}${runtime}${production}[/LIST]\n${mediainf}${ddl}`;
+[LIST][*]${rated}${genre}${director}${writer}${actors}${released}${runtime}${production}[/LIST]\n${mediainfo}${ddl}`;
 				try {
 					document.getElementsByName('message')[0].value = dump;
 				} catch (err) {
