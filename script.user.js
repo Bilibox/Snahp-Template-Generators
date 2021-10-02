@@ -73,14 +73,14 @@ const omdbinput = `
 var sectionType;
 
 function Main() {
-	GM.getValue('APIKEY', 'foo').then((APIVALUE) => {
+	GM.getValue('APIKEY', 'foo').then((apiKey) => {
 		var tabURL = window.location.href;
 		if (tabURL.includes('preview')) {
 			return;
 		}
 		const htmlpush = document.getElementsByTagName('dl')[0];
-		htmlpush.innerHTML += APIVALUE !== 'foo' ? htmlTemplate : omdbinput;
-		SectionSearch(APIVALUE, tabURL);
+		htmlpush.innerHTML += apiKey !== 'foo' ? htmlTemplate : omdbinput;
+		SectionSearch(apiKey, tabURL);
 		$(document).on('keydown', function (event) {
 			if (event.key == 'Escape') {
 				$('#omdb-generator').hide();
@@ -101,12 +101,12 @@ function Main() {
 			},
 			false
 		);
-		if (APIVALUE !== 'foo') {
-			SectionSearch(APIVALUE);
+		if (apiKey !== 'foo') {
+			SectionSearch(apiKey);
 			document.getElementById('generate-template').addEventListener(
 				'click',
 				() => {
-					GenerateTemplate(APIVALUE);
+					GenerateTemplate(apiKey);
 				},
 				false
 			);
@@ -188,16 +188,54 @@ function SectionSearch(APIVALUE, tabURL) {
 	});
 }
 
+// Check response status from API
+async function CheckApiStatus(url) {
+	return RequestUrl(url)
+		.then(function (response) {
+			if (response.status !== 200) {
+				if (response.status === 401) {
+					let data = JSON.parse(response.responseText);
+					alert(
+						`Something Messed Up! Check The Omdb Error Below. \n ${data.message}`
+					);
+					throw Error('401 Response');
+				} else {
+					throw Error(
+						`Unable To Verify API Key. \n HTTP STATUS CODE: ${response.status}`
+					);
+				}
+			}
+			return true;
+		})
+		.catch(function (error) {
+			if (error.message !== '401 Response') {
+				alert(
+					`Something Messed Up! Check The Omdb Error Below. \n ${error.message}`
+				);
+			}
+			console.error(error);
+			return false;
+		});
+}
+
 function SaveApiKey() {
 	let omdbKey = document.getElementById('omdb-api-key').value;
 	if (omdbKey) {
-		GM.setValue('APIKEY', omdbKey);
+		let apiResult = CheckApiStatus(
+			`https://www.omdbapi.com/?apikey=${omdbKey}`
+		);
+		apiResult.then(function (result) {
+			if (result) {
+				GM.setValue('APIKEY', omdbKey);
+				document.getElementById('omdb-generator').remove();
+				document.getElementById('show-template').remove();
+				Main();
+			}
+		});
 	} else {
 		alert("You Didn't Enter Your Key!!");
+		return;
 	}
-	document.getElementById('omdb-generator').remove();
-	document.getElementById('show-template').remove();
-	Main();
 }
 
 // Handle BBCode for Screenshots
@@ -286,7 +324,7 @@ function ParseMediaInfo(mediaInfo, premadeTitle) {
 	return premadeTitle;
 }
 
-function GenerateTemplate(APIVALUE) {
+function GenerateTemplate(apiKey) {
 	var [imdbID, screenshots, mediainfo] = [
 		document.getElementById('hidden-id-value').value
 			? document.getElementById('hidden-id-value').value
@@ -304,7 +342,7 @@ function GenerateTemplate(APIVALUE) {
 	screenshots = screenshots ? ScreenshotHandler(screenshots.split(' ')) : '';
 	GM_xmlhttpRequest({
 		method: 'GET',
-		url: `http://www.omdbapi.com/?apikey=${APIVALUE}&i=${imdbID}&plot=full&y&r=json`,
+		url: `http://www.omdbapi.com/?apikey=${apiKey}&i=${imdbID}&plot=full&y&r=json`,
 		onload: function (response) {
 			let json = JSON.parse(response.responseText);
 			let poster =
