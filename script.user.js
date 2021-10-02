@@ -260,123 +260,123 @@ function GenerateTemplate(APIVALUE) {
 	];
 	if (!imdbID) {
 		alert("You Didn't Select A Title or Enter a IMDB ID!");
+		return;
+	}
+	if (imdbID.includes('imdb')) {
+		imdbID = imdbID.match(/tt\d+/)[0];
+	}
+	if (screenshots) {
+		screenshots = screenshots.split(' ');
+		var screen = `\n[hr][/hr][size=150][color=#fac51c][b]Screenshots[/b][/color][/size]\n\n`;
+		for (let ss of screenshots) {
+			screen += `[img]${ss}[/img]`;
+		}
+		screen += `\n`;
 	} else {
-		if (imdbID.includes('imdb')) {
-			imdbID = imdbID.match(/tt\d+/)[0];
-		}
-		if (screenshots) {
-			screenshots = screenshots.split(' ');
-			var screen = `\n[hr][/hr][size=150][color=#fac51c][b]Screenshots[/b][/color][/size]\n\n`;
-			for (let ss of screenshots) {
-				screen += `[img]${ss}[/img]`;
-			}
-			screen += `\n`;
-		} else {
-			screen = '';
-		}
-		GM_xmlhttpRequest({
-			method: 'GET',
-			url: `http://www.omdbapi.com/?apikey=${APIVALUE}&i=${imdbID}&plot=full&y&r=json`,
-			onload: function (response) {
-				let json = JSON.parse(response.responseText);
-				let poster =
-					json.Poster && json.Poster !== 'N/A'
-						? '[center][img]' + json.Poster + '[/img]\n'
-						: '';
-				if (json.Title && json.Title !== 'N/A') {
-					var title = `${json.Title}`;
-				} else {
-					alert(
-						"You Messed Up! Check That You've Entered Something Into The IMDB Field!"
-					);
-				}
-				let year = json.Year && json.Year !== 'N/A' ? ` (${json.Year})` : '';
-				let fullName = `[color=#fac51c][b][size=150][url='/search.php?keywords=${imdbID}&sf=titleonly']${title}${year}[/url][/size][/b][/color]\n`;
-				let imdbId =
-					json.imdbID && json.imdbID !== 'N/A'
-						? '[url=https://www.imdb.com/title/' +
-						  json.imdbID +
-						  '][img]https://i.imgur.com/rcSipDw.png[/img][/url]'
-						: '';
-				let rating =
-					json.imdbRating && json.imdbRating !== 'N/A'
-						? '[size=150][b]' + json.imdbRating + '[/b]/10[/size]\n'
-						: '';
-				let imdbvotes =
-					json.imdbVotes && json.imdbVotes !== 'N/A'
-						? '[size=150][img]https://i.imgur.com/sEpKj3O.png[/img]' +
-						  json.imdbVotes +
-						  '[/size][/center]\n'
-						: '';
-				let plot =
-					json.Plot && json.Plot !== 'N/A'
-						? '[hr][/hr][size=150][color=#fac51c][b]Plot[/b][/color][/size]\n\n ' +
-						  json.Plot +
-						  '\n'
-						: '';
-				let rated =
-					json.Rated && json.Rated !== 'N/A'
-						? '[B]Rating: [/B]' + json.Rated + '\n'
-						: '';
-				let genre =
-					json.Genre && json.Genre !== 'N/A'
-						? '[*][B]Genre: [/B] ' + json.Genre + '\n'
-						: '';
-				let director =
-					json.Director && json.Director !== 'N/A'
-						? '[*][B]Directed By: [/B] ' + json.Director + '\n'
-						: '';
-				let writer =
-					json.Writer && json.Writer !== 'N/A'
-						? '[*][B]Written By: [/B] ' + json.Writer + '\n'
-						: '';
-				let actors =
-					json.Actors && json.Actors !== 'N/A'
-						? '[*][B]Starring: [/B] ' + json.Actors + '\n'
-						: '';
-				let released =
-					json.Released && json.Released !== 'N/A'
-						? '[*][B]Release Date: [/B] ' + json.Released + '\n'
-						: '';
-				let runtime =
-					json.Runtime && json.Runtime !== 'N/A'
-						? '[*][B]Runtime: [/B] ' + json.Runtime + '\n'
-						: '';
-				let production =
-					json.Production && json.Production !== 'N/A'
-						? '[*][B]Production: [/B] ' + json.Production + '\n'
-						: '';
-				let titleBool = !document.getElementsByName('subject')[0].value;
-				let premadeTitle = titleBool ? `${json.Title} (${json.Year})` : '';
-				if (titleBool && mediainfo) {
-					premadeTitle = ParseMediaInfo(mediainfo, premadeTitle);
-				}
-				mediainfo = mediainfo
-					? `[hr][/hr][size=150][color=#fac51c][b]Media Info[/b][/color][/size]\n\n [mediainfo]${mediainfo}\n[/mediainfo]\n`
+		screen = '';
+	}
+	GM_xmlhttpRequest({
+		method: 'GET',
+		url: `http://www.omdbapi.com/?apikey=${APIVALUE}&i=${imdbID}&plot=full&y&r=json`,
+		onload: function (response) {
+			let json = JSON.parse(response.responseText);
+			let poster =
+				json.Poster && json.Poster !== 'N/A'
+					? '[center][img]' + json.Poster + '[/img]\n'
 					: '';
-				let ddl = `[hr][/hr][center][size=150][color=#fac51c][b]Download Link[/b][/color][/size]\n
+			if (json.Title && json.Title !== 'N/A') {
+				var title = `${json.Title}`;
+			} else {
+				alert(
+					"You Messed Up! Check That You've Entered Something Into The IMDB Field!"
+				);
+			}
+			let year = json.Year && json.Year !== 'N/A' ? ` (${json.Year})` : '';
+			let fullName = `[color=#fac51c][b][size=150][url='/search.php?keywords=${imdbID}&sf=titleonly']${title}${year}[/url][/size][/b][/color]\n`;
+			let imdbId =
+				json.imdbID && json.imdbID !== 'N/A'
+					? '[url=https://www.imdb.com/title/' +
+					  json.imdbID +
+					  '][img]https://i.imgur.com/rcSipDw.png[/img][/url]'
+					: '';
+			let rating =
+				json.imdbRating && json.imdbRating !== 'N/A'
+					? '[size=150][b]' + json.imdbRating + '[/b]/10[/size]\n'
+					: '';
+			let imdbvotes =
+				json.imdbVotes && json.imdbVotes !== 'N/A'
+					? '[size=150][img]https://i.imgur.com/sEpKj3O.png[/img]' +
+					  json.imdbVotes +
+					  '[/size][/center]\n'
+					: '';
+			let plot =
+				json.Plot && json.Plot !== 'N/A'
+					? '[hr][/hr][size=150][color=#fac51c][b]Plot[/b][/color][/size]\n\n ' +
+					  json.Plot +
+					  '\n'
+					: '';
+			let rated =
+				json.Rated && json.Rated !== 'N/A'
+					? '[B]Rating: [/B]' + json.Rated + '\n'
+					: '';
+			let genre =
+				json.Genre && json.Genre !== 'N/A'
+					? '[*][B]Genre: [/B] ' + json.Genre + '\n'
+					: '';
+			let director =
+				json.Director && json.Director !== 'N/A'
+					? '[*][B]Directed By: [/B] ' + json.Director + '\n'
+					: '';
+			let writer =
+				json.Writer && json.Writer !== 'N/A'
+					? '[*][B]Written By: [/B] ' + json.Writer + '\n'
+					: '';
+			let actors =
+				json.Actors && json.Actors !== 'N/A'
+					? '[*][B]Starring: [/B] ' + json.Actors + '\n'
+					: '';
+			let released =
+				json.Released && json.Released !== 'N/A'
+					? '[*][B]Release Date: [/B] ' + json.Released + '\n'
+					: '';
+			let runtime =
+				json.Runtime && json.Runtime !== 'N/A'
+					? '[*][B]Runtime: [/B] ' + json.Runtime + '\n'
+					: '';
+			let production =
+				json.Production && json.Production !== 'N/A'
+					? '[*][B]Production: [/B] ' + json.Production + '\n'
+					: '';
+			let titleBool = !document.getElementsByName('subject')[0].value;
+			let premadeTitle = titleBool ? `${json.Title} (${json.Year})` : '';
+			if (titleBool && mediainfo) {
+				premadeTitle = ParseMediaInfo(mediainfo, premadeTitle);
+			}
+			mediainfo = mediainfo
+				? `[hr][/hr][size=150][color=#fac51c][b]Media Info[/b][/color][/size]\n\n [mediainfo]${mediainfo}\n[/mediainfo]\n`
+				: '';
+			let ddl = `[hr][/hr][center][size=150][color=#fac51c][b]Download Link[/b][/color][/size]\n
 [hide][b][url=][color=#FF0000]MEGA[/color][/url]
 [url=][color=#FFFF00]ZippyShare[/color][/url]
 [url=][color=#00FF00]Gdrive[/color][/url]
 [/b][/hide]
 [/center]`;
-				let dump = `${poster}${fullName}${imdbId}${rating}${imdbvotes}${plot}${screen}
+			let dump = `${poster}${fullName}${imdbId}${rating}${imdbvotes}${plot}${screen}
 [hr][/hr][size=150][color=#fac51c][b]Movie Info[/b][/color][/size]\n
 [LIST][*]${rated}${genre}${director}${writer}${actors}${released}${runtime}${production}[/LIST]\n${mediainfo}${ddl}`;
-				try {
-					document.getElementsByName('message')[0].value = dump;
-				} catch (err) {
-					alert(
-						`Something went wrong! Please report to my Developer.... I get scared when I crash ☹️ ${err}`
-					);
-				} finally {
-					if (!titleBool) {
-						document.getElementsByName('subject')[0].value = premadeTitle;
-					}
+			try {
+				document.getElementsByName('message')[0].value = dump;
+			} catch (err) {
+				alert(
+					`Something went wrong! Please report to my Developer.... I get scared when I crash ☹️ ${err}`
+				);
+			} finally {
+				if (!titleBool) {
+					document.getElementsByName('subject')[0].value = premadeTitle;
 				}
-			},
-		});
-	}
+			}
+		},
+	});
 }
 
 // Add css to our elements
