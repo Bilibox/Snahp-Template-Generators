@@ -87,10 +87,38 @@ function Main() {
 				document.getElementById('show-template').style.display = 'block';
 			}
 		});
-		$('#hide-template').click(() => HideTemplate());
-		$('#show-template').click(() => ShowTemplate());
-		$('#save-key').click(() => SaveApiKey(APIVALUE, htmlpush));
-		$('#generate-template').click(() => GenerateTemplate(APIVALUE));
+		document.getElementById('hide-template').addEventListener(
+			'click',
+			() => {
+				HideTemplate();
+			},
+			false
+		);
+		document.getElementById('show-template').addEventListener(
+			'click',
+			() => {
+				ShowTemplate();
+			},
+			false
+		);
+		if (APIVALUE !== 'foo') {
+			SectionSearch(APIVALUE);
+			document.getElementById('generate-template').addEventListener(
+				'click',
+				() => {
+					GenerateTemplate(APIVALUE);
+				},
+				false
+			);
+		} else {
+			document.getElementById('save-key').addEventListener(
+				'click',
+				() => {
+					SaveApiKey();
+				},
+				false
+			);
+		}
 	});
 }
 
@@ -160,19 +188,18 @@ function SectionSearch(APIVALUE, tabURL) {
 	});
 }
 
-function SaveApiKey(APIVALUE) {
-	if (APIVALUE == 'foo') {
-		let omdbKey = $('#omdb-api-key').val();
-		if (omdbKey) {
-			GM.setValue('APIKEY', omdbKey);
-		} else {
-			alert("You Didn't Enter Your Key!!");
-		}
-		document.getElementById('omdb-generator').remove();
-		document.getElementById('show-template').remove();
-		Main();
+function SaveApiKey() {
+	let omdbKey = document.getElementById('omdb-api-key').value;
+	if (omdbKey) {
+		GM.setValue('APIKEY', omdbKey);
+	} else {
+		alert("You Didn't Enter Your Key!!");
 	}
+	document.getElementById('omdb-generator').remove();
+	document.getElementById('show-template').remove();
+	Main();
 }
+
 // Handle BBCode for Screenshots
 function ScreenshotHandler(screenshots) {
 	var screen = `\n[hr][/hr][size=150][color=#fac51c][b]Screenshots[/b][/color][/size]\n\n`;
