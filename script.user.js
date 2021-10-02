@@ -159,7 +159,7 @@ function SectionSearch(APIVALUE, tabURL) {
 	});
 }
 
-function SaveApiKey(APIVALUE, htmlpush) {
+function SaveApiKey(APIVALUE) {
 	if (APIVALUE == 'foo') {
 		let omdbKey = $('#omdb-api-key').val();
 		if (omdbKey) {
@@ -173,11 +173,87 @@ function SaveApiKey(APIVALUE, htmlpush) {
 	}
 }
 
+// Parses Mediainfo for Title values
+function ParseMediaInfo(mediaInfo, premadeTitle) {
+	let videoInfo = mediaInfo.match(/(Video|Video #1)$.^[\s\S]*?(?=\n{2,})/ms);
+	if (videoInfo) {
+		videoInfo = videoInfo[0];
+		let videoWidth = videoInfo.match(/Width.*/);
+		if (videoWidth) {
+			videoWidth = videoWidth[0];
+			if (videoWidth.includes('3 840')) {
+				premadeTitle += ' 2160p';
+			} else if (videoWidth.includes('1 920')) {
+				premadeTitle += ' 1080p';
+			} else if (videoWidth.includes('1 280')) {
+				premadeTitle += ' 720p';
+			} else if (videoWidth.includes('720')) {
+				premadeTitle += ' 480p';
+			}
+		}
+		let videoWritingLib = videoInfo.match(/Writing library.*/);
+		if (
+			videoWritingLib &
+			(videoWritingLib[0].includes('x265') |
+				videoWritingLib[0].includes('x264'))
+		) {
+			videoWritingLib = videoWritingLib[0];
+			if (videoWritingLib.includes('x265')) {
+				premadeTitle += ' x265';
+			} else if (videoWritingLib.includes('x264')) {
+				premadeTitle += ' x264';
+			}
+		} else {
+			let videoFormat = videoInfo.match(/Format.*/);
+			if (videoFormat) {
+				videoFormat = videoFormat[0];
+				if (videoFormat.includes('HEVC')) {
+					premadeTitle += ' HEVC';
+				} else if (videoFormat.includes('AVC')) {
+					premadeTitle += ' AVC';
+				}
+			}
+		}
+		let videoBitDepth = videoInfo.match(/Bit depth.*/);
+		if (videoBitDepth) {
+			videoBitDepth = videoBitDepth[0];
+			premadeTitle += videoBitDepth.match(/\d.*/)
+				? ` ${videoBitDepth.match(/\d.*/)[0].replace(' bits', 'bit')}`
+				: '';
+		}
+	}
+	let audioInfo = mediaInfo.match(/(Audio|Audio #1)$.^[\s\S]*?(?=\n{2,})/ms);
+	if (audioInfo) {
+		audioInfo = audioInfo[0];
+		let audioCodec = audioInfo.match(/Codec ID.*/);
+		if (audioCodec) {
+			audioCodec = audioCodec[0];
+			premadeTitle += audioCodec.match(/(?<=A_).*/)
+				? ` ${audioCodec.match(/(?<=A_).*/)[0]}`
+				: '';
+		}
+	}
+	if (sectionType === 'movies') {
+		let generalInfo = mediaInfo.match(/General$.^[\s\S]*?(?=\n{2,})/ms);
+		if (generalInfo) {
+			generalInfo = generalInfo[0];
+			let mediaSize = generalInfo.match(/File size.*/);
+			if (mediaSize) {
+				mediaSize = mediaSize[0];
+				premadeTitle += mediaSize.match(/\d.*/)
+					? ` [${mediaSize.match(/\d.*/)[0]}]`
+					: '';
+			}
+		}
+	}
+	return premadeTitle;
+}
+
 function GenerateTemplate(APIVALUE) {
 	var IID = $('#hidden-id-value').val();
 	var screenshots = $('#screen-links').val();
 	var uToob = $('#ytLink').val();
-	var MEDIAINFO = $('#mediainfo-textarea').val();
+	var mediainfo = $('#mediainfo-textarea').val();
 	if (!IID) {
 		IID = $('#omdb-search-box').val();
 		if (IID.includes('imdb')) {
@@ -271,9 +347,14 @@ function GenerateTemplate(APIVALUE) {
 					json.Production && json.Production !== 'N/A'
 						? '[*][B]Production: [/B] ' + json.Production + '\n'
 						: '';
-				let mediainf = MEDIAINFO
+				let titleBool = !document.getElementsByClassName('subject')[0].value;
+				let premadeTitle = titleBool ? `${json.Title} (${json.Year})` : '';
+				if (titleBool && mediaInfo) {
+					premadeTitle = ParseMediaInfo(mediaInfo, premadeTitle);
+				}
+				let mediainf = mediainfo
 					? '[hr][/hr][size=150][color=#fac51c][b]Media Info[/b][/color][/size]\n\n [mediainfo]' +
-					  MEDIAINFO +
+					  mediainfo +
 					  '\n[/mediainfo]\n'
 					: '';
 				let ddl = `[hr][/hr][center][size=150][color=#fac51c][b]Download Link[/b][/color][/size]\n
@@ -293,10 +374,8 @@ function GenerateTemplate(APIVALUE) {
 							err
 					);
 				} finally {
-					let xf_title_value = document.getElementsByName('subject')[0].value;
-					if (!xf_title_value) {
-						document.getElementsByName('subject')[0].value =
-							json.Title + ' (' + json.Year + ')';
+					if (!titleBool) {
+						document.getElementsByName('subject')[0].value = premadeTitle;
 					}
 				}
 			},
