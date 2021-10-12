@@ -191,6 +191,22 @@ function SectionSearch(apiKey, tabURL) {
 	});
 }
 
+// Asyncronous http requests
+async function RequestUrl(url) {
+	return await new Promise((resolve, reject) => {
+		GM_xmlhttpRequest({
+			method: 'GET',
+			url: url,
+			onload: (response) => {
+				resolve(response);
+			},
+			onerror: (response) => {
+				reject(response);
+			},
+		});
+	});
+}
+
 // Check response status from API
 async function CheckApiStatus(url) {
 	return RequestUrl(url)
