@@ -342,6 +342,21 @@ function ParseMediaInfo(mediaInfo, premadeTitle) {
 	return premadeTitle;
 }
 
+// Submit Generated BBCode to the forum
+function SubmitToForum(forumBBCode, title) {
+	try {
+		document.getElementsByName('message')[0].value = forumBBCode;
+	} catch (err) {
+		alert(
+			`Something went wrong! Please report to my Developer.... I get scared when I crash ☹️\n\n err`
+		);
+	} finally {
+		if (!document.getElementsByName('subject')[0].value) {
+			document.getElementsByName('subject')[0].value = title;
+		}
+	}
+}
+
 function GenerateTemplate(apiKey) {
 	var [imdbID, screenshots, mediainfo] = [
 		document.getElementById('hidden-id-value').value
@@ -434,18 +449,8 @@ function GenerateTemplate(apiKey) {
 [url=][color=#00FF00]Gdrive[/color][/url]
 [/b][/hide]
 [/center]`;
-			let dump = `${poster}${fullName}${imdbId}${rating}${imdbvotes}${plot}${screenshots}${movieInfo}${mediainfo}${ddl}`;
-			try {
-				document.getElementsByName('message')[0].value = dump;
-			} catch (err) {
-				alert(
-					`Something went wrong! Please report to my Developer.... I get scared when I crash ☹️ ${err}`
-				);
-			} finally {
-				if (!titleBool) {
-					document.getElementsByName('subject')[0].value = premadeTitle;
-				}
-			}
+			let forumBBCode = `${poster}${fullName}${imdbId}${rating}${imdbvotes}${plot}${screenshots}${movieInfo}${mediainfo}${ddl}`;
+			SubmitToForum(forumBBCode, premadeTitle)
 		},
 	});
 }
