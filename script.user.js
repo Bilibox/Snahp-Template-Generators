@@ -44,6 +44,10 @@ const htmlTemplate = `
 <dt> <label id="mediainfo-output" for="Mediainfo Text Output">Mediainfo:</label> </dt>
 <dd> <textarea rows="1" style="width:100%;" class="inputbox autowidth" id="mediainfo-textarea" size="45"></textarea> </dd>
 </dl>
+<dl style="clear: left;">
+<dt> <label id="DLAndroid" for="DownloadLink">Download Links:</label> </dt>
+<dd> <input class="inputbox autowidth" id="DownloadLink" size="45" type="text" value="" placeholder="Download Link"></input> </dd>
+</dl>
 <dt><label> </label></dt>
 <dd>
 <button class="button--primary button button--icon" id="generate-template" name="template-button" type="button">Generate Template</button>
@@ -256,9 +260,29 @@ function SaveApiKey() {
 	}
 }
 
+function DownloadLinkHandler(downloadLinks, megaDomains) {
+	let downloadLinkBBCode = '[hide][b]';
+	if (downloadLinks == null) {
+		downloadLinkBBCode += '[url=][size=150]Download Link[/size][/url]';
+	} else {
+		for (let link of downloadLinks) {
+			if (megaDomains.some((el) => link.includes(el))) {
+				downloadLinkBBCode += `[url=${link}][size=150][color=#FF0000]MEGA[/color][/size][/url]\n`;
+			} else if (link.includes('zippyshare.com')) {
+				downloadLinkBBCode += `[url=${link}][size=150][color=#FFFF00]ZippyShare[/color][/size][/url]\n`;
+			} else if (link.includes('drive.google.com')) {
+				downloadLinkBBCode += `[url=${link}][size=150][color=#00FF00]Gdrive[/color][/size][/url]\n`;
+			} else {
+				downloadLinkBBCode += `[url=${link}][size=150]Download Link[/size][/url]\n`;
+			}
+		}
+	}
+	return `[size=200][color=#fac51c][B]Download Links:[/B][/COLOR][/size]\n\n[center]\n${downloadLinkBBCode}[/b][/hide][/CENTER]\n`;
+}
+
 // Handle BBCode for Screenshots
 function ScreenshotHandler(screenshots) {
-	var screen = `\n[hr][/hr][size=150][color=#fac51c][b]Screenshots[/b][/color][/size]\n\n`;
+	var screen = `\n[hr][/hr][size=150][color=#fac51c][b]Screenshots:[/b][/color][/size]\n\n`;
 	for (let ss of screenshots) {
 		screen += `[img]${ss}[/img]`;
 	}
@@ -343,7 +367,7 @@ function ParseMediaInfo(mediaInfo, premadeTitle) {
 }
 
 // Submit Generated BBCode to the forum
-function SubmitToForum(forumBBCode, title) {
+function SubmitToForum(forumBBCode, title, titleBool) {
 	try {
 		document.getElementsByName('message')[0].value = forumBBCode;
 	} catch (err) {
@@ -351,19 +375,20 @@ function SubmitToForum(forumBBCode, title) {
 			`Something went wrong! Please report to my Developer.... I get scared when I crash ☹️\n\n err`
 		);
 	} finally {
-		if (!document.getElementsByName('subject')[0].value) {
+		if (titleBool) {
 			document.getElementsByName('subject')[0].value = title;
 		}
 	}
 }
 
 function GenerateTemplate(apiKey) {
-	var [imdbID, screenshots, mediainfo] = [
+	var [imdbID, downloadLinks, mediainfo, screenshots] = [
 		document.getElementById('hidden-id-value').value
 			? document.getElementById('hidden-id-value').value
 			: document.getElementById('omdb-search-box').value,
-		document.getElementById('screen-links').value,
+		document.getElementById('DownloadLink').value,
 		document.getElementById('mediainfo-textarea').value,
+		document.getElementById('screen-links').value,
 	];
 	if (!imdbID) {
 		alert("You Didn't Select A Title or Enter a IMDB ID!");
@@ -371,6 +396,21 @@ function GenerateTemplate(apiKey) {
 	}
 	if (imdbID.includes('imdb')) {
 		imdbID = imdbID.match(/tt\d+/)[0];
+	}
+	// Create Prefix placeholder per DDLs
+	let titleBool = !document.getElementsByName('subject')[0].value;
+	let titlePrefix = '';
+	var megaDomains = ['mega.nz', 'mega.co.nz']; // In case using old Mega link
+	if (titleBool) {
+		if (megaDomains.some((el) => downloadLinks.includes(el))) {
+			titlePrefix += '[Mega]';
+		}
+		if (downloadLinks.includes('zippyshare.com')) {
+			titlePrefix += '[Zippy]';
+		}
+		if (downloadLinks.includes('drive.google.com')) {
+			titlePrefix += '[Gdrive]';
+		}
 	}
 	screenshots = screenshots ? ScreenshotHandler(screenshots.split(' ')) : '';
 	GM_xmlhttpRequest({
@@ -435,22 +475,21 @@ function GenerateTemplate(apiKey) {
 			if (movieInfo) {
 				movieInfo = `\n[hr][/hr][size=150][color=#fac51c][b]Movie Info[/b][/color][/size]\n\n[LIST][*]${movieInfo}[/LIST]\n`;
 			}
-			let titleBool = !document.getElementsByName('subject')[0].value;
-			let premadeTitle = titleBool ? `${json.Title} (${json.Year})` : '';
+			let premadeTitle = titleBool
+				? `${titlePrefix} ${json.Title} (${json.Year})`
+				: '';
 			if (titleBool && mediainfo) {
 				premadeTitle = ParseMediaInfo(mediainfo, premadeTitle);
 			}
 			mediainfo = mediainfo
 				? `[hr][/hr][size=150][color=#fac51c][b]Media Info[/b][/color][/size]\n\n[mediainfo]${mediainfo}\n[/mediainfo]\n`
 				: '';
-			let ddl = `[hr][/hr][center][size=150][color=#fac51c][b]Download Link[/b][/color][/size]\n
-[hide][b][url=][color=#FF0000]MEGA[/color][/url]
-[url=][color=#FFFF00]ZippyShare[/color][/url]
-[url=][color=#00FF00]Gdrive[/color][/url]
-[/b][/hide]
-[/center]`;
-			let forumBBCode = `${poster}${fullName}${imdbId}${rating}${imdbvotes}${plot}${screenshots}${movieInfo}${mediainfo}${ddl}`;
-			SubmitToForum(forumBBCode, premadeTitle)
+			let downloadLinkBBCode = DownloadLinkHandler(
+				downloadLinks.split(' '),
+				megaDomains
+			);
+			let forumBBCode = `${poster}${fullName}${imdbId}${rating}${imdbvotes}${plot}${screenshots}${movieInfo}${mediainfo}${downloadLinkBBCode}`;
+			SubmitToForum(forumBBCode, premadeTitle, titleBool);
 		},
 	});
 }
