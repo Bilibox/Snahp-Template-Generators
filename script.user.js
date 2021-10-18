@@ -21,7 +21,10 @@
 // @connect     omdbapi.com
 // ==/UserScript==
 
-Main();
+var tabURL = window.location.href;
+if (!tabURL.includes('preview')) {
+	Main();
+}
 
 const htmlTemplate = `
 <button id="show-template" name="template-button" style="display:none" type="button">Show</button>
@@ -75,19 +78,8 @@ var sectionType;
 
 function Main() {
 	GM.getValue('APIKEY', 'foo').then((apiKey) => {
-		var tabURL = window.location.href;
-		if (tabURL.includes('preview')) {
-			return;
-		}
 		const htmlpush = document.getElementsByTagName('dl')[0];
 		htmlpush.innerHTML += apiKey !== 'foo' ? htmlTemplate : omdbinput;
-		SectionSearch(apiKey, tabURL);
-		$(document).on('keydown', function (event) {
-			if (event.key == 'Escape') {
-				$('#omdb-generator').hide();
-				document.getElementById('show-template').style.display = 'block';
-			}
-		});
 		document.getElementById('hide-template').addEventListener(
 			'click',
 			() => {
@@ -103,7 +95,7 @@ function Main() {
 			false
 		);
 		if (apiKey !== 'foo') {
-			SectionSearch(apiKey, tabURL);
+			SectionSearch(apiKey);
 			document.getElementById('generate-template').addEventListener(
 				'click',
 				() => {
@@ -123,6 +115,13 @@ function Main() {
 	});
 }
 
+$(document).on('keydown', function (event) {
+	if (event.key == 'Escape') {
+		$('#omdb-generator').hide();
+		document.getElementById('show-template').style.display = 'block';
+	}
+});
+
 function ShowTemplate() {
 	document.getElementById('show-template').style.display = 'none';
 	$('#omdb-generator').show();
@@ -132,7 +131,7 @@ function HideTemplate() {
 	$('#omdb-generator').hide();
 }
 
-function SectionSearch(apiKey, tabURL) {
+function SectionSearch(apiKey) {
 	const section = parseInt(tabURL.match(/\d+/, '')[0]);
 	const [movies, series] = [
 		[26, 29, 30, 30, 42, 55, 56, 66, 72, 73, 88],
@@ -184,8 +183,8 @@ function SectionSearch(apiKey, tabURL) {
 			title: 'name',
 		},
 		onSelect: function (response) {
-			$('#hidden-id-value').val(response.imdbID);
-			$('#omdb-search-box').val(response.title);
+			document.getElementById('hidden-id-value').value = response.imdbID;
+			document.getElementById('omdb-search-box').value = response.title;
 		},
 		minCharacters: 3,
 	});
