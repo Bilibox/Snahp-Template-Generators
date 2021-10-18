@@ -282,7 +282,7 @@ function DownloadLinkHandler(downloadLinks, megaDomains) {
 
 // Handle BBCode for Screenshots
 function ScreenshotHandler(screenshots) {
-	var screen = `\n[hr][/hr][size=150][color=#fac51c][b]Screenshots:[/b][/color][/size]\n\n`;
+	var screen = `\n[hr][/hr][size=200][color=#fac51c][b]Screenshots:[/b][/color][/size]\n\n`;
 	for (let ss of screenshots) {
 		screen += `[img]${ss}[/img]`;
 	}
@@ -445,7 +445,7 @@ function GenerateTemplate(apiKey) {
 					: '';
 			let plot =
 				json.Plot && json.Plot !== 'N/A'
-					? `[hr][/hr][size=150][color=#fac51c][b]Plot[/b][/color][/size]\n\n ${json.Plot}\n`
+					? `[hr][/hr][size=200][color=#fac51c][b]Plot:[/b][/color][/size]\n\n ${json.Plot}\n`
 					: '';
 			let movieInfo = '';
 			if (json.Rated && json.Rated !== 'N/A') {
@@ -473,7 +473,7 @@ function GenerateTemplate(apiKey) {
 				movieInfo += `[*][B]Production: [/B] ${json.Production}\n`;
 			}
 			if (movieInfo) {
-				movieInfo = `\n[hr][/hr][size=150][color=#fac51c][b]Movie Info[/b][/color][/size]\n\n[LIST][*]${movieInfo}[/LIST]\n`;
+				movieInfo = `\n[hr][/hr][size=200][color=#fac51c][b]Movie Info:[/b][/color][/size]\n\n[LIST][*]${movieInfo}[/LIST]\n`;
 			}
 			let premadeTitle = titleBool
 				? `${titlePrefix} ${json.Title} (${json.Year})`
@@ -482,7 +482,7 @@ function GenerateTemplate(apiKey) {
 				premadeTitle = ParseMediaInfo(mediainfo, premadeTitle);
 			}
 			mediainfo = mediainfo
-				? `[hr][/hr][size=150][color=#fac51c][b]Media Info[/b][/color][/size]\n\n[mediainfo]${mediainfo}\n[/mediainfo]\n`
+				? `[hr][/hr][size=200][color=#fac51c][b]Media Info:[/b][/color][/size]\n\n[mediainfo]${mediainfo}\n[/mediainfo]\n`
 				: '';
 			let downloadLinkBBCode = DownloadLinkHandler(
 				downloadLinks.split(' '),
