@@ -27,26 +27,25 @@ if (!tabURL.includes('preview')) {
 }
 
 const htmlTemplate = `
-<button id="show-template" name="template-button" style="display:none" type="button">Show</button>
-<dr style="clear: left;" id="omdb-generator">
+<button class="button--primary button button--icon" id="show-template" name="template-button" style="display: none;" type="button">Show</button>
+<dr id="omdb-generator" style="clear: left;">
 <dl style="clear: left;">
 <dt> <label id="imdb-search" for="Semantic Search">Imdb Search:</label> </dt>
-<dd> <input type="text" id="hidden-id-value" value="" style="display:none">
-<div class="ui search" id="search-box" size="45">
-<input type="text" class="prompt inputbox autowidth" id="omdb-search-box" size="45" placeholder="IMDB ID, Title, or Link"></input>
+<dd> <input id="hidden-id-value" style="display:none" type="text" value=""><div class="ui search" id="search-box" size="45">
+<input class="prompt inputbox autowidth" type="text" id="omdb-search-box" size="45" placeholder="Enter IMDB ID/Link OR Search the Title"></input>
 <div class="results inputbox" id="search-results" size="45" style="display:none;"></div> </dd>
 </dl>
 <dl style="clear: left;">
-<dt> <label id="screen-fill" for="Screenshots">Screenshot Links:</label> </dt>
-<dd> <input type="text" id="screen-links" value="" class="inputbox autowidth" size="45"></input> </dd>
+<dt> <label id="screenshots-label" for="Screenshots">Screenshot Links:</label> </dt>
+<dd> <input class="inputbox autowidth" id="screen-links" size="45" type="text" value="" placeholder="Enter Direct File URLS w/ Spaces Between"></input> </dd>
 </dl>
 <dl style="clear: left;">
-<dt> <label id="mediainfo-output" for="Mediainfo Text Output">Mediainfo:</label> </dt>
-<dd> <textarea rows="1" style="width:100%;" class="inputbox autowidth" id="mediainfo-textarea" size="45"></textarea> </dd>
+<dt> <label id="mediainfo-output-label" for="Mediainfo Text Output">Mediainfo:</label> </dt>
+<dd> <textarea class="inputbox autowidth" id="mediainfo-textarea" rows="1" size="45" style="width:100%;" placeholder="Enter Full Mediainfo With The [General] Section"></textarea> </dd>
 </dl>
 <dl style="clear: left;">
-<dt> <label id="DLAndroid" for="DownloadLink">Download Links:</label> </dt>
-<dd> <input class="inputbox autowidth" id="DownloadLink" size="45" type="text" value="" placeholder="Download Link"></input> </dd>
+<dt> <label id="download-omdb-label" for="DownloadLink">Download Links:</label> </dt>
+<dd> <input class="inputbox autowidth" id="DownloadLink" size="45" type="text" value="" placeholder="Enter DDLS w/ Spaces Between"></input> </dd>
 </dl>
 <dt><label> </label></dt>
 <dd>
@@ -83,7 +82,11 @@ var sectionType;
 function Main() {
 	GM.getValue('APIKEY', 'foo').then((apiKey) => {
 		const htmlpush = document.getElementsByTagName('dl')[0];
-		htmlpush.innerHTML += apiKey !== 'foo' ? htmlTemplate : omdbinput;
+		if (apiKey !== 'foo') {
+			htmlpush.insertAdjacentHTML('afterend', htmlTemplate);
+		} else {
+			htmlpush.insertAdjacentHTML('afterend', omdbinput);
+		}
 		document.getElementById('hide-template').addEventListener(
 			'click',
 			() => {
@@ -510,6 +513,9 @@ GM_addStyle(`
 		cursor: pointer;
 		padding-bottom: unset;
 		line-height: unset;
+	}
+	#mediainfo-textarea {
+		width: 100% !important; 
 	}
 }
 `);
