@@ -168,7 +168,7 @@ function SectionSearch(apiKey) {
 							results: [],
 						};
 					}
-					var Name = item.Title + ' (' + item.Year + ')';
+					var Name = `${item.Title} (${item.Year})`;
 					response.results[category].results.push({
 						title: Name,
 						description: Name,
@@ -365,7 +365,7 @@ function GenerateTemplate(apiKey) {
 			let json = JSON.parse(response.responseText);
 			let poster =
 				json.Poster && json.Poster !== 'N/A'
-					? '[center][img]' + json.Poster + '[/img]\n'
+					? `[center][img]${json.Poster}[/img]\n`
 					: '';
 			if (json.Title && json.Title !== 'N/A') {
 				var title = `${json.Title}`;
@@ -378,58 +378,45 @@ function GenerateTemplate(apiKey) {
 			let fullName = `[color=#fac51c][b][size=150][url='/search.php?keywords=${imdbID}&sf=titleonly']${title}${year}[/url][/size][/b][/color]\n`;
 			let imdbId =
 				json.imdbID && json.imdbID !== 'N/A'
-					? '[url=https://www.imdb.com/title/' +
-					  json.imdbID +
-					  '][img]https://i.imgur.com/rcSipDw.png[/img][/url]'
+					? `[url=https://www.imdb.com/title/${json.imdbID}][img]https://i.imgur.com/rcSipDw.png[/img][/url]`
 					: '';
 			let rating =
 				json.imdbRating && json.imdbRating !== 'N/A'
-					? '[size=150][b]' + json.imdbRating + '[/b]/10[/size]\n'
+					? `[size=150][b]${json.imdbRating}[/b]/10[/size]\n`
 					: '';
 			let imdbvotes =
 				json.imdbVotes && json.imdbVotes !== 'N/A'
-					? '[size=150][img]https://i.imgur.com/sEpKj3O.png[/img]' +
-					  json.imdbVotes +
-					  '[/size][/center]\n'
+					? `[size=150][img]https://i.imgur.com/sEpKj3O.png[/img]${json.imdbVotes}[/size][/center]\n`
 					: '';
 			let plot =
 				json.Plot && json.Plot !== 'N/A'
-					? '[hr][/hr][size=150][color=#fac51c][b]Plot[/b][/color][/size]\n\n ' +
-					  json.Plot +
-					  '\n'
+					? `[hr][/hr][size=150][color=#fac51c][b]Plot[/b][/color][/size]\n\n ${json.Plot}\n`
 					: '';
-			let rated =
-				json.Rated && json.Rated !== 'N/A'
-					? '[B]Rating: [/B]' + json.Rated + '\n'
-					: '';
-			let genre =
-				json.Genre && json.Genre !== 'N/A'
-					? '[*][B]Genre: [/B] ' + json.Genre + '\n'
-					: '';
-			let director =
-				json.Director && json.Director !== 'N/A'
-					? '[*][B]Directed By: [/B] ' + json.Director + '\n'
-					: '';
-			let writer =
-				json.Writer && json.Writer !== 'N/A'
-					? '[*][B]Written By: [/B] ' + json.Writer + '\n'
-					: '';
-			let actors =
-				json.Actors && json.Actors !== 'N/A'
-					? '[*][B]Starring: [/B] ' + json.Actors + '\n'
-					: '';
-			let released =
-				json.Released && json.Released !== 'N/A'
-					? '[*][B]Release Date: [/B] ' + json.Released + '\n'
-					: '';
-			let runtime =
-				json.Runtime && json.Runtime !== 'N/A'
-					? '[*][B]Runtime: [/B] ' + json.Runtime + '\n'
-					: '';
-			let production =
-				json.Production && json.Production !== 'N/A'
-					? '[*][B]Production: [/B] ' + json.Production + '\n'
-					: '';
+			let movieInfo = '';
+			if (json.Rated && json.Rated !== 'N/A') {
+				movieInfo += `[B]Rating: [/B] ${json.Rated}\n`;
+			}
+			if (json.Genre && json.Genre !== 'N/A') {
+				movieInfo += `[*][B]Genre: [/B] ${json.Genre}\n`;
+			}
+			if (json.Director && json.Director !== 'N/A') {
+				movieInfo += `[*][B]Directed By: [/B] ${json.Director}\n`;
+			}
+			if (json.Writer && json.Writer !== 'N/A') {
+				movieInfo += `[*][B]Written By: [/B] ${json.Writer}\n`;
+			}
+			if (json.Actors && json.Actors !== 'N/A') {
+				movieInfo += `[*][B]Starring: [/B] ${json.Actors}\n`;
+			}
+			if (json.Released && json.Released !== 'N/A') {
+				movieInfo += `[*][B]Release Date: [/B] ${json.Released}\n`;
+			}
+			if (json.Runtime && json.Runtime !== 'N/A') {
+				movieInfo += `[*][B]Runtime: [/B] ${json.Runtime}\n`;
+			}
+			if (json.Production && json.Production !== 'N/A') {
+				movieInfo += `[*][B]Production: [/B] ${json.Production}\n`;
+			}
 			let titleBool = !document.getElementsByName('subject')[0].value;
 			let premadeTitle = titleBool ? `${json.Title} (${json.Year})` : '';
 			if (titleBool && mediainfo) {
@@ -446,7 +433,7 @@ function GenerateTemplate(apiKey) {
 [/center]`;
 			let dump = `${poster}${fullName}${imdbId}${rating}${imdbvotes}${plot}${screenshots}
 [hr][/hr][size=150][color=#fac51c][b]Movie Info[/b][/color][/size]\n
-[LIST][*]${rated}${genre}${director}${writer}${actors}${released}${runtime}${production}[/LIST]\n${mediainfo}${ddl}`;
+[LIST][*]${movieInfo}[/LIST]\n${mediainfo}${ddl}`;
 			try {
 				document.getElementsByName('message')[0].value = dump;
 			} catch (err) {
