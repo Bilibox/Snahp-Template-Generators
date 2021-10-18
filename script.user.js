@@ -417,13 +417,16 @@ function GenerateTemplate(apiKey) {
 			if (json.Production && json.Production !== 'N/A') {
 				movieInfo += `[*][B]Production: [/B] ${json.Production}\n`;
 			}
+			if (movieInfo) {
+				movieInfo = `\n[hr][/hr][size=150][color=#fac51c][b]Movie Info[/b][/color][/size]\n\n[LIST][*]${movieInfo}[/LIST]\n`;
+			}
 			let titleBool = !document.getElementsByName('subject')[0].value;
 			let premadeTitle = titleBool ? `${json.Title} (${json.Year})` : '';
 			if (titleBool && mediainfo) {
 				premadeTitle = ParseMediaInfo(mediainfo, premadeTitle);
 			}
 			mediainfo = mediainfo
-				? `[hr][/hr][size=150][color=#fac51c][b]Media Info[/b][/color][/size]\n\n [mediainfo]${mediainfo}\n[/mediainfo]\n`
+				? `[hr][/hr][size=150][color=#fac51c][b]Media Info[/b][/color][/size]\n\n[mediainfo]${mediainfo}\n[/mediainfo]\n`
 				: '';
 			let ddl = `[hr][/hr][center][size=150][color=#fac51c][b]Download Link[/b][/color][/size]\n
 [hide][b][url=][color=#FF0000]MEGA[/color][/url]
@@ -431,9 +434,7 @@ function GenerateTemplate(apiKey) {
 [url=][color=#00FF00]Gdrive[/color][/url]
 [/b][/hide]
 [/center]`;
-			let dump = `${poster}${fullName}${imdbId}${rating}${imdbvotes}${plot}${screenshots}
-[hr][/hr][size=150][color=#fac51c][b]Movie Info[/b][/color][/size]\n
-[LIST][*]${movieInfo}[/LIST]\n${mediainfo}${ddl}`;
+			let dump = `${poster}${fullName}${imdbId}${rating}${imdbvotes}${plot}${screenshots}${movieInfo}${mediainfo}${ddl}`;
 			try {
 				document.getElementsByName('message')[0].value = dump;
 			} catch (err) {
