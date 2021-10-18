@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        Snahp Movie/TV Template Generator
-// @version     1.0.1
+// @version     2.0.0
 // @description Creates a BBCode template for the Movie/TV section on Snahp forums.
 // @author      BiliTheBox
 // @icon        https://forum.snahp.it/favicon.ico
