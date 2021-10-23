@@ -10,7 +10,7 @@
 // @downloadURL https://github.com/Bilibox/Snahp-Template-Generators/raw/Android/script.user.js
 // @include     /^https?:\/\/forum\.snahp\.it\/posting\.php\?mode\=post\&f\=(47)/
 // @grant       GM_addStyle
-// @grant       GM_xmlhttpRequest
+// @grant       GM.xmlHttpRequest
 // @run-at      document-end
 // @connect     play.google.com
 // ==/UserScript==
@@ -67,83 +67,55 @@ const htmlTemplate = `
 </dr>
 `;
 
-// Run the Main function
-Main();
-
-// Main function that runs the script
-function Main() {
-	if (window.location.href.includes('preview')) {
-		return;
-	}
-	var temphtml = document.getElementsByTagName('dl')[0]; // Grab div under the inputs
-	temphtml.insertAdjacentHTML('afterend', htmlTemplate); // Place our HTML under the inputs
-	document.getElementById('hideTemplate').addEventListener(
-		'click',
-		() => {
-			HideTemplate();
-		},
-		false
-	);
-	document.getElementById('showTemplate').addEventListener(
-		'click',
-		() => {
-			ShowTemplate();
-		},
-		false
-	);
-	document.getElementById('generateTemplate').addEventListener(
-		'click',
-		() => {
-			GenerateTemplate();
-		},
-		false
-	);
-}
+///////////////////////////////////////////////////////////////////////////
+//                                Utility                                //
+///////////////////////////////////////////////////////////////////////////
 
 // Show Template HTML and hide "Show" button
-function ShowTemplate() {
+const ShowTemplate = () => {
 	document.getElementById('gmShowTemplate').style.display = 'none';
 	document.getElementById('ApkGenerator').style.display = 'block';
-}
+};
 
 // Hide Template HTML and unhide "Show" button
-function HideTemplate() {
+const HideTemplate = () => {
 	document.getElementById('gmShowTemplate').style.display = 'block';
 	document.getElementById('ApkGenerator').style.display = 'none';
-}
+};
 
 //* Start Filter functions
-// Return div holding text "Size"
-function FilterSize(element) {
+// Return El holding text "Size"
+const FilterSize = (element) => {
 	return element.textContent === 'Size';
-}
+};
 
-// Return div holding text "Current Version"
-function FilterCurrentVersion(element) {
+// Return El holding text "Current Version"
+const FilterCurrentVersion = (element) => {
 	return element.textContent === 'Current Version';
-}
+};
 
-// Return div holding text "Requires Android"
-function FilterRequiredVersion(element) {
+// Return El holding text "Requires Android"
+const FilterRequiredVersion = (element) => {
 	return element.textContent === 'Requires Android';
-}
+};
 //* End Filter functions
 
-/*fix word casing*/
-function UpperCase(str) {
-	str = str.toLowerCase(); // First make entire string lowercase
+// Take String And Uppercase First Letter Each Word
+const UpperCase = (str) => {
+	str = str.toLowerCase();
 	return str.replace(/(^|\s)\S/g, (t) => {
-		// Return Uppercase for every word in String
 		return t.toUpperCase();
 	});
-}
+};
 
 // Asyncronous http requests
-async function RequestUrl(url) {
+const RequestUrl = async (method, url, data, headers) => {
 	return await new Promise((resolve, reject) => {
-		GM_xmlhttpRequest({
-			method: 'GET',
+		GM.xmlHttpRequest({
+			method: method,
 			url: url,
+			data: data,
+			headers: headers,
 			onload: (response) => {
 				resolve(response);
 			},
@@ -152,78 +124,85 @@ async function RequestUrl(url) {
 			},
 		});
 	});
-}
+};
 
-// Handle BBCode for Screeshots
-async function ScreenshotHandler(images) {
-	var screenshotBBCode = '';
-	let counter = 0;
-	let fimg = '';
-	for (let image of images) {
-		if (image.alt == 'Screenshot Image') {
-			if (image.width > '200') {
-				fimg = '[fimg=500,300]';
-			} else {
-				fimg = '[fimg=300,500]';
-			}
+///////////////////////////////////////////////////////////////////////////
+//                            Parsers                                    //
+///////////////////////////////////////////////////////////////////////////
+class Parser {
+	// Handle BBCode for Screeshots
+	screenshots = (images) => {
+		var screenshotBBCode = '';
+		let counter = 0;
+		let fimg = '';
+		for (let image of images) {
+			if (image.alt == 'Screenshot Image') {
+				if (image.width > '200') {
+					fimg = '[fimg=500,300]';
+				} else {
+					fimg = '[fimg=300,500]';
+				}
 
-			if (!image.dataset | !image.dataset.srcset) {
-				screenshotBBCode +=
-					fimg + image.srcset.replace('-rw', '').replace(' 2x', '') + '[/fimg]';
-				counter++;
-			} else {
-				screenshotBBCode +=
-					fimg +
-					image.dataset.srcset.replace('-rw', '').replace(' 2x', '') +
-					'[/fimg]';
-				counter++;
-			}
+				if (!image.dataset | !image.dataset.srcset) {
+					screenshotBBCode +=
+						fimg +
+						image.srcset.replace('-rw', '').replace(' 2x', '') +
+						'[/fimg]';
+					counter++;
+				} else {
+					screenshotBBCode +=
+						fimg +
+						image.dataset.srcset.replace('-rw', '').replace(' 2x', '') +
+						'[/fimg]';
+					counter++;
+				}
 
-			if (counter == 3) {
-				break;
-			}
-		}
-	}
-	return `[size=200][color=rgb(26, 162, 96)][B]Screenshots[/B][/color][/size]\n\n${screenshotBBCode}[/center]\n[hr][/hr]\n\n`;
-}
-
-async function DownloadLinkHandler(downloadLinks, megaDomains) {
-	let downloadLinkBBCode = '[hide][b]';
-	if (downloadLinks == null) {
-		downloadLinkBBCode += '[url=][size=150]Download Link[/size][/url]';
-	} else {
-		for (let link of downloadLinks) {
-			if (megaDomains.some((el) => link.includes(el))) {
-				downloadLinkBBCode += `[url=${link}][size=150][color=#FF0000]MEGA[/color][/size][/url]\n`;
-			} else if (link.includes('zippyshare.com')) {
-				downloadLinkBBCode += `[url=${link}][size=150][color=#FFFF00]ZippyShare[/color][/size][/url]\n`;
-			} else if (link.includes('drive.google.com')) {
-				downloadLinkBBCode += `[url=${link}][size=150][color=#00FF00]Gdrive[/color][/size][/url]\n`;
-			} else {
-				downloadLinkBBCode += `[url=${link}][size=150]Download Link[/size][/url]\n`;
+				if (counter == 3) {
+					break;
+				}
 			}
 		}
-	}
-	return `[size=200][color=rgb(26, 162, 96)][B]Download Link[/B][/COLOR][/size]\n\n[center]\n${downloadLinkBBCode}[/b][/hide][/CENTER]\n`;
+		return `[size=200][color=rgb(26, 162, 96)][B]Screenshots[/B][/color][/size]\n\n${screenshotBBCode}[/center]\n[hr][/hr]\n\n`;
+	};
+
+	downloadLinks = (downloadLinks, megaDomains) => {
+		let downloadLinkBBCode = '[hide][b]';
+		if (downloadLinks == null) {
+			downloadLinkBBCode += '[url=][size=150]Download Link[/size][/url]';
+		} else {
+			for (let link of downloadLinks) {
+				if (megaDomains.some((el) => link.includes(el))) {
+					downloadLinkBBCode += `[url=${link}][size=150][color=#FF0000]MEGA[/color][/size][/url]\n`;
+				} else if (link.includes('zippyshare.com')) {
+					downloadLinkBBCode += `[url=${link}][size=150][color=#FFFF00]ZippyShare[/color][/size][/url]\n`;
+				} else if (link.includes('drive.google.com')) {
+					downloadLinkBBCode += `[url=${link}][size=150][color=#00FF00]Gdrive[/color][/size][/url]\n`;
+				} else {
+					downloadLinkBBCode += `[url=${link}][size=150]Download Link[/size][/url]\n`;
+				}
+			}
+		}
+		return `[size=200][color=rgb(26, 162, 96)][B]Download Link[/B][/COLOR][/size]\n\n[center]\n${downloadLinkBBCode}[/b][/hide][/CENTER]\n`;
+	};
+
+	virusTotal = (virustotalSplit) => {
+		let virustotalLinks = '';
+		for (let splitLink of virustotalSplit) {
+			virustotalLinks += `[url=${splitLink}][size=150][color=#40BFFF][B]VirusTotal[/B][/color][/size][/url]\n`;
+		}
+		return `[size=200][color=rgb(26, 162, 96)][B]Virustotal[/B][/color][/size]\n\n${virustotalLinks}\n\n[hr][/hr]\n\n`;
+	};
 }
 
-async function VirusTotalHandler(virustotalSplit) {
-	let virustotalLinks = '';
-	for (let splitLink of virustotalSplit) {
-		virustotalLinks += `[url=${splitLink}][size=150][color=#40BFFF][B]VirusTotal[/B][/color][/size][/url]\n`;
-	}
-	return `[size=200][color=rgb(26, 162, 96)][B]Virustotal[/B][/color][/size]\n\n${virustotalLinks}\n\n[hr][/hr]\n\n`;
-}
-
-async function GenerateBBCode(
+const GenerateBBCode = async (
 	titlePrefix,
 	playStoreUrl,
 	modInfo,
 	titleExtra,
 	virustotalBBcode,
 	downloadLinkBBcode
-) {
-	let response = await RequestUrl(playStoreUrl);
+) => {
+	let response = await RequestUrl('GET', playStoreUrl);
 	let [page, parser] = [response.responseText, new DOMParser()];
 	let parsedHtml = parser.parseFromString(page, 'text/html');
 	// Grab json from parse
@@ -242,7 +221,7 @@ async function GenerateBBCode(
 	];
 	// Grab all images & find logo
 	let images = parsedHtml.getElementsByTagName('img');
-	let playStoreImages = ScreenshotHandler(images);
+	let playStoreImages = new Parser().screenshots(images);
 	for (let logoimg of images) {
 		let logoattr = logoimg.alt;
 		if (logoattr == 'Cover art') {
@@ -336,10 +315,10 @@ async function GenerateBBCode(
 			title: `${titlePrefix}[Android]${gplayjson.name}${titleVersion}${titleExtra} [MB]`,
 		};
 	});
-}
+};
 
 // Submit Generated BBCode to the forum
-function SubmitToForum(forumBBCode, title) {
+const SubmitToForum = (forumBBCode, title) => {
 	try {
 		document.getElementsByName('message')[0].value = forumBBCode;
 	} catch (err) {
@@ -352,9 +331,9 @@ function SubmitToForum(forumBBCode, title) {
 			document.getElementsByName('subject')[0].value = title;
 		}
 	}
-}
+};
 
-function GenerateTemplate() {
+const GenerateTemplate = () => {
 	// Create variables from HTML Input
 	let [
 		playStoreUrl,
@@ -410,8 +389,8 @@ function GenerateTemplate() {
 		? playStoreUrl.replace(/\&.*$/, '&hl=en_US')
 		: playStoreUrl + '&hl=en_US';
 
-	let virustotalBBCode = VirusTotalHandler(virustotalLinks.split(' '));
-	let downloadLinkBBCode = DownloadLinkHandler(
+	let virustotalBBCode = new Parser().virusTotal(virustotalLinks.split(' '));
+	let downloadLinkBBCode = new Parser.downloadLinks(
 		downloadLinks.split(' '),
 		megaDomains
 	);
@@ -426,7 +405,7 @@ function GenerateTemplate() {
 	bbcode.then((results) => {
 		SubmitToForum(results.post, results.title);
 	});
-}
+};
 
 //--- CSS styles make it work...
 GM_addStyle(
@@ -451,3 +430,36 @@ GM_addStyle(
 		}                                     \
 	}'
 );
+
+// Run the Main function
+Main();
+
+// Main function that runs the script
+function Main() {
+	if (window.location.href.includes('preview')) {
+		return;
+	}
+	var temphtml = document.getElementsByTagName('dl')[0]; // Grab div under the inputs
+	temphtml.insertAdjacentHTML('afterend', htmlTemplate); // Place our HTML under the inputs
+	document.getElementById('hideTemplate').addEventListener(
+		'click',
+		() => {
+			HideTemplate();
+		},
+		false
+	);
+	document.getElementById('showTemplate').addEventListener(
+		'click',
+		() => {
+			ShowTemplate();
+		},
+		false
+	);
+	document.getElementById('generateTemplate').addEventListener(
+		'click',
+		() => {
+			GenerateTemplate();
+		},
+		false
+	);
+}
