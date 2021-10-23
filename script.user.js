@@ -15,16 +15,14 @@
 // @require     https://raw.githubusercontent.com/Semantic-Org/UI-Search/master/search.js
 // @require     https://raw.githubusercontent.com/Semantic-Org/UI-Api/master/api.js
 // @grant       GM_addStyle
-// @grant       GM_xmlhttpRequest
+// @grant       GM.xmlHttpRequest
 // @grant       GM.setValue
 // @grant       GM.getValue
 // @connect     omdbapi.com
 // ==/UserScript==
 
-var tabURL = window.location.href;
-if (!tabURL.includes('preview')) {
-	Main();
-}
+const tabURL = window.location.href;
+var sectionType;
 
 const htmlTemplate = `
 <button class="button--primary button button--icon" id="show-template" name="template-button" style="display: none;" type="button">Show</button>
@@ -76,51 +74,9 @@ const omdbinput = `
 </dd>
 </dr>
 `;
-
-var sectionType;
-
-function Main() {
-	GM.getValue('APIKEY', 'foo').then((apiKey) => {
-		const htmlpush = document.getElementsByTagName('dl')[0];
-		if (apiKey !== 'foo') {
-			htmlpush.insertAdjacentHTML('afterend', htmlTemplate);
-		} else {
-			htmlpush.insertAdjacentHTML('afterend', omdbinput);
-		}
-		document.getElementById('hide-template').addEventListener(
-			'click',
-			() => {
-				HideTemplate();
-			},
-			false
-		);
-		document.getElementById('show-template').addEventListener(
-			'click',
-			() => {
-				ShowTemplate();
-			},
-			false
-		);
-		if (apiKey !== 'foo') {
-			SectionSearch(apiKey);
-			document.getElementById('generate-template').addEventListener(
-				'click',
-				() => {
-					GenerateTemplate(apiKey);
-				},
-				false
-			);
-		} else {
-			document.getElementById('save-key').addEventListener(
-				'click',
-				() => {
-					SaveApiKey();
-				},
-				false
-			);
-		}
-	});
-}
+///////////////////////////////////////////////////////////////////////////
+//                             Shortcut Keys                             //
+///////////////////////////////////////////////////////////////////////////
 
 $(document).on('keydown', function (event) {
 	if (event.key == 'Escape') {
@@ -129,16 +85,88 @@ $(document).on('keydown', function (event) {
 	}
 });
 
-function ShowTemplate() {
+///////////////////////////////////////////////////////////////////////////
+//                                Utility                                //
+///////////////////////////////////////////////////////////////////////////
+
+const ShowTemplate = () => {
 	document.getElementById('show-template').style.display = 'none';
 	$('#omdb-generator').show();
-}
-function HideTemplate() {
+};
+
+const HideTemplate = () => {
 	document.getElementById('show-template').style.display = 'block';
 	$('#omdb-generator').hide();
-}
+};
 
-function SectionSearch(apiKey) {
+// Asyncronous http requests
+const RequestUrl = async (method, url, data, headers) => {
+	return await new Promise((resolve, reject) => {
+		GM.xmlHttpRequest({
+			method: method,
+			url: url,
+			data: data,
+			headers: headers,
+			onload: (response) => {
+				resolve(response);
+			},
+			onerror: (response) => {
+				reject(response);
+			},
+		});
+	});
+};
+
+// Check response status from API
+const CheckApiStatus = async (url) => {
+	return RequestUrl(url)
+		.then(function (response) {
+			if (response.status !== 200) {
+				if (response.status === 401) {
+					let data = JSON.parse(response.responseText);
+					alert(
+						`Something Messed Up! Check The Omdb Error Below. \n ${data.message}`
+					);
+					throw Error('401 Response');
+				} else {
+					throw Error(
+						`Unable To Verify API Key. \n HTTP STATUS CODE: ${response.status}`
+					);
+				}
+			}
+			return true;
+		})
+		.catch(function (error) {
+			if (error.message !== '401 Response') {
+				alert(
+					`Something Messed Up! Check The Omdb Error Below. \n ${error.message}`
+				);
+			}
+			console.error(error);
+			return false;
+		});
+};
+
+// Submit Generated BBCode to the forum
+const SubmitToForum = (forumBBCode, title, titleBool) => {
+	try {
+		document.getElementsByName('message')[0].value = forumBBCode;
+	} catch (err) {
+		alert(
+			`Something went wrong! Please report to my Developer.... I get scared when I crash ☹️\n\n err`
+		);
+	} finally {
+		if (titleBool) {
+			document.getElementsByName('subject')[0].value = title;
+		}
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////
+//                                Search                                 //
+///////////////////////////////////////////////////////////////////////////
+
+const SectionSearch = (apiKey) => {
 	const section = parseInt(tabURL.match(/\d+/, '')[0]);
 	const [movies, series] = [
 		[26, 29, 30, 30, 42, 55, 56, 66, 72, 73, 88],
@@ -195,55 +223,122 @@ function SectionSearch(apiKey) {
 		},
 		minCharacters: 3,
 	});
-}
+};
 
-// Asyncronous http requests
-async function RequestUrl(url) {
-	return await new Promise((resolve, reject) => {
-		GM_xmlhttpRequest({
-			method: 'GET',
-			url: url,
-			onload: (response) => {
-				resolve(response);
-			},
-			onerror: (response) => {
-				reject(response);
-			},
-		});
-	});
-}
+///////////////////////////////////////////////////////////////////////////
+//                            Parsers                                    //
+///////////////////////////////////////////////////////////////////////////
 
-// Check response status from API
-async function CheckApiStatus(url) {
-	return RequestUrl(url)
-		.then(function (response) {
-			if (response.status !== 200) {
-				if (response.status === 401) {
-					let data = JSON.parse(response.responseText);
-					alert(
-						`Something Messed Up! Check The Omdb Error Below. \n ${data.message}`
-					);
-					throw Error('401 Response');
+class Parser {
+	// parse download links
+	downloadLinks = (downloadLinks, megaDomains) => {
+		let downloadLinkBBCode = '[hide][b]';
+		if (downloadLinks == null) {
+			downloadLinkBBCode += '[url=][size=150]Download Link[/size][/url]';
+		} else {
+			for (let link of downloadLinks) {
+				if (megaDomains.some((el) => link.includes(el))) {
+					downloadLinkBBCode += `[url=${link}][size=150][color=#FF0000]MEGA[/color][/size][/url]\n`;
+				} else if (link.includes('zippyshare.com')) {
+					downloadLinkBBCode += `[url=${link}][size=150][color=#FFFF00]ZippyShare[/color][/size][/url]\n`;
+				} else if (link.includes('drive.google.com')) {
+					downloadLinkBBCode += `[url=${link}][size=150][color=#00FF00]Gdrive[/color][/size][/url]\n`;
 				} else {
-					throw Error(
-						`Unable To Verify API Key. \n HTTP STATUS CODE: ${response.status}`
-					);
+					downloadLinkBBCode += `[url=${link}][size=150]Download Link[/size][/url]\n`;
 				}
 			}
-			return true;
-		})
-		.catch(function (error) {
-			if (error.message !== '401 Response') {
-				alert(
-					`Something Messed Up! Check The Omdb Error Below. \n ${error.message}`
-				);
+		}
+		return `[size=200][color=#fac51c][B]Download Links:[/B][/COLOR][/size]\n\n[center]\n${downloadLinkBBCode}[/b][/hide][/CENTER]\n`;
+	};
+
+	// parse screenshot links
+	screenshots = (screenshots) => {
+		var screen = `\n[hr][/hr][size=200][color=#fac51c][b]Screenshots:[/b][/color][/size]\n\n`;
+		for (let ss of screenshots) {
+			screen += `[img]${ss}[/img]`;
+		}
+		screen += `\n`;
+		return screen;
+	};
+
+	// Parses Mediainfo for Title values
+	mediaInfo = (mediaInfo, premadeTitle) => {
+		let videoInfo = mediaInfo.match(/(Video|Video #1)$.^[\s\S]*?(?=\n{2,})/ms);
+		if (videoInfo) {
+			videoInfo = videoInfo[0];
+			let videoWidth = videoInfo.match(/Width.*/);
+			if (videoWidth) {
+				videoWidth = videoWidth[0];
+				if (videoWidth.includes('3 840')) {
+					premadeTitle += ' 2160p';
+				} else if (videoWidth.includes('1 920')) {
+					premadeTitle += ' 1080p';
+				} else if (videoWidth.includes('1 280')) {
+					premadeTitle += ' 720p';
+				} else if (videoWidth.includes('720')) {
+					premadeTitle += ' 480p';
+				}
 			}
-			console.error(error);
-			return false;
-		});
+			let videoWritingLib = videoInfo.match(/Writing library.*/);
+			if (
+				videoWritingLib &
+				(videoWritingLib[0].includes('x265') |
+					videoWritingLib[0].includes('x264'))
+			) {
+				videoWritingLib = videoWritingLib[0];
+				if (videoWritingLib.includes('x265')) {
+					premadeTitle += ' x265';
+				} else if (videoWritingLib.includes('x264')) {
+					premadeTitle += ' x264';
+				}
+			} else {
+				let videoFormat = videoInfo.match(/Format.*/);
+				if (videoFormat) {
+					videoFormat = videoFormat[0];
+					if (videoFormat.includes('HEVC')) {
+						premadeTitle += ' HEVC';
+					} else if (videoFormat.includes('AVC')) {
+						premadeTitle += ' AVC';
+					}
+				}
+			}
+			let videoBitDepth = videoInfo.match(/Bit depth.*/);
+			if (videoBitDepth) {
+				videoBitDepth = videoBitDepth[0];
+				premadeTitle += videoBitDepth.match(/\d.*/)
+					? ` ${videoBitDepth.match(/\d.*/)[0].replace(' bits', 'bit')}`
+					: '';
+			}
+		}
+		let audioInfo = mediaInfo.match(/(Audio|Audio #1)$.^[\s\S]*?(?=\n{2,})/ms);
+		if (audioInfo) {
+			audioInfo = audioInfo[0];
+			let audioCodec = audioInfo.match(/Codec ID.*/);
+			if (audioCodec) {
+				audioCodec = audioCodec[0];
+				premadeTitle += audioCodec.match(/(?<=A_).*/)
+					? ` ${audioCodec.match(/(?<=A_).*/)[0]}`
+					: '';
+			}
+		}
+		if (sectionType === 'movies') {
+			let generalInfo = mediaInfo.match(/General$.^[\s\S]*?(?=\n{2,})/ms);
+			if (generalInfo) {
+				generalInfo = generalInfo[0];
+				let mediaSize = generalInfo.match(/File size.*/);
+				if (mediaSize) {
+					mediaSize = mediaSize[0];
+					premadeTitle += mediaSize.match(/\d.*/)
+						? ` [${mediaSize.match(/\d.*/)[0]}]`
+						: '';
+				}
+			}
+		}
+		return premadeTitle;
+	};
 }
 
-function SaveApiKey() {
+const SaveApiKey = () => {
 	let omdbKey = document.getElementById('omdb-api-key').value;
 	if (omdbKey) {
 		let apiResult = CheckApiStatus(
@@ -261,130 +356,9 @@ function SaveApiKey() {
 		alert("You Didn't Enter Your Key!!");
 		return;
 	}
-}
+};
 
-function DownloadLinkHandler(downloadLinks, megaDomains) {
-	let downloadLinkBBCode = '[hide][b]';
-	if (downloadLinks == null) {
-		downloadLinkBBCode += '[url=][size=150]Download Link[/size][/url]';
-	} else {
-		for (let link of downloadLinks) {
-			if (megaDomains.some((el) => link.includes(el))) {
-				downloadLinkBBCode += `[url=${link}][size=150][color=#FF0000]MEGA[/color][/size][/url]\n`;
-			} else if (link.includes('zippyshare.com')) {
-				downloadLinkBBCode += `[url=${link}][size=150][color=#FFFF00]ZippyShare[/color][/size][/url]\n`;
-			} else if (link.includes('drive.google.com')) {
-				downloadLinkBBCode += `[url=${link}][size=150][color=#00FF00]Gdrive[/color][/size][/url]\n`;
-			} else {
-				downloadLinkBBCode += `[url=${link}][size=150]Download Link[/size][/url]\n`;
-			}
-		}
-	}
-	return `[size=200][color=#fac51c][B]Download Links:[/B][/COLOR][/size]\n\n[center]\n${downloadLinkBBCode}[/b][/hide][/CENTER]\n`;
-}
-
-// Handle BBCode for Screenshots
-function ScreenshotHandler(screenshots) {
-	var screen = `\n[hr][/hr][size=200][color=#fac51c][b]Screenshots:[/b][/color][/size]\n\n`;
-	for (let ss of screenshots) {
-		screen += `[img]${ss}[/img]`;
-	}
-	screen += `\n`;
-	return screen;
-}
-
-// Parses Mediainfo for Title values
-function ParseMediaInfo(mediaInfo, premadeTitle) {
-	let videoInfo = mediaInfo.match(/(Video|Video #1)$.^[\s\S]*?(?=\n{2,})/ms);
-	if (videoInfo) {
-		videoInfo = videoInfo[0];
-		let videoWidth = videoInfo.match(/Width.*/);
-		if (videoWidth) {
-			videoWidth = videoWidth[0];
-			if (videoWidth.includes('3 840')) {
-				premadeTitle += ' 2160p';
-			} else if (videoWidth.includes('1 920')) {
-				premadeTitle += ' 1080p';
-			} else if (videoWidth.includes('1 280')) {
-				premadeTitle += ' 720p';
-			} else if (videoWidth.includes('720')) {
-				premadeTitle += ' 480p';
-			}
-		}
-		let videoWritingLib = videoInfo.match(/Writing library.*/);
-		if (
-			videoWritingLib &
-			(videoWritingLib[0].includes('x265') |
-				videoWritingLib[0].includes('x264'))
-		) {
-			videoWritingLib = videoWritingLib[0];
-			if (videoWritingLib.includes('x265')) {
-				premadeTitle += ' x265';
-			} else if (videoWritingLib.includes('x264')) {
-				premadeTitle += ' x264';
-			}
-		} else {
-			let videoFormat = videoInfo.match(/Format.*/);
-			if (videoFormat) {
-				videoFormat = videoFormat[0];
-				if (videoFormat.includes('HEVC')) {
-					premadeTitle += ' HEVC';
-				} else if (videoFormat.includes('AVC')) {
-					premadeTitle += ' AVC';
-				}
-			}
-		}
-		let videoBitDepth = videoInfo.match(/Bit depth.*/);
-		if (videoBitDepth) {
-			videoBitDepth = videoBitDepth[0];
-			premadeTitle += videoBitDepth.match(/\d.*/)
-				? ` ${videoBitDepth.match(/\d.*/)[0].replace(' bits', 'bit')}`
-				: '';
-		}
-	}
-	let audioInfo = mediaInfo.match(/(Audio|Audio #1)$.^[\s\S]*?(?=\n{2,})/ms);
-	if (audioInfo) {
-		audioInfo = audioInfo[0];
-		let audioCodec = audioInfo.match(/Codec ID.*/);
-		if (audioCodec) {
-			audioCodec = audioCodec[0];
-			premadeTitle += audioCodec.match(/(?<=A_).*/)
-				? ` ${audioCodec.match(/(?<=A_).*/)[0]}`
-				: '';
-		}
-	}
-	if (sectionType === 'movies') {
-		let generalInfo = mediaInfo.match(/General$.^[\s\S]*?(?=\n{2,})/ms);
-		if (generalInfo) {
-			generalInfo = generalInfo[0];
-			let mediaSize = generalInfo.match(/File size.*/);
-			if (mediaSize) {
-				mediaSize = mediaSize[0];
-				premadeTitle += mediaSize.match(/\d.*/)
-					? ` [${mediaSize.match(/\d.*/)[0]}]`
-					: '';
-			}
-		}
-	}
-	return premadeTitle;
-}
-
-// Submit Generated BBCode to the forum
-function SubmitToForum(forumBBCode, title, titleBool) {
-	try {
-		document.getElementsByName('message')[0].value = forumBBCode;
-	} catch (err) {
-		alert(
-			`Something went wrong! Please report to my Developer.... I get scared when I crash ☹️\n\n err`
-		);
-	} finally {
-		if (titleBool) {
-			document.getElementsByName('subject')[0].value = title;
-		}
-	}
-}
-
-function GenerateTemplate(apiKey) {
+const GenerateTemplate = async (apiKey) => {
 	var [imdbID, downloadLinks, mediainfo, screenshots] = [
 		document.getElementById('hidden-id-value').value
 			? document.getElementById('hidden-id-value').value
@@ -415,85 +389,128 @@ function GenerateTemplate(apiKey) {
 			titlePrefix += '[Gdrive]';
 		}
 	}
-	screenshots = screenshots ? ScreenshotHandler(screenshots.split(' ')) : '';
-	GM_xmlhttpRequest({
-		method: 'GET',
-		url: `http://www.omdbapi.com/?apikey=${apiKey}&i=${imdbID}&plot=full&y&r=json`,
-		onload: function (response) {
-			let json = JSON.parse(response.responseText);
-			let poster =
-				json.Poster && json.Poster !== 'N/A'
-					? `[center][img]${json.Poster}[/img]\n`
-					: '';
-			if (json.Title && json.Title !== 'N/A') {
-				var title = `${json.Title}`;
-			} else {
-				alert(
-					"You Messed Up! Check That You've Entered Something Into The IMDB Field!"
-				);
-			}
-			let year = json.Year && json.Year !== 'N/A' ? ` (${json.Year})` : '';
-			let fullName = `[color=#fac51c][b][size=150][url='/search.php?keywords=${imdbID}&sf=titleonly']${title}${year}[/url][/size][/b][/color]\n`;
-			let imdbId =
-				json.imdbID && json.imdbID !== 'N/A'
-					? `[url=https://www.imdb.com/title/${json.imdbID}][img]https://i.imgur.com/rcSipDw.png[/img][/url]`
-					: '';
-			let rating =
-				json.imdbRating && json.imdbRating !== 'N/A'
-					? `[size=150][b]${json.imdbRating}[/b]/10[/size]\n`
-					: '';
-			let imdbvotes =
-				json.imdbVotes && json.imdbVotes !== 'N/A'
-					? `[size=150][img]https://i.imgur.com/sEpKj3O.png[/img]${json.imdbVotes}[/size][/center]\n`
-					: '';
-			let plot =
-				json.Plot && json.Plot !== 'N/A'
-					? `[hr][/hr][size=200][color=#fac51c][b]Plot:[/b][/color][/size]\n\n ${json.Plot}\n`
-					: '';
-			let movieInfo = '';
-			if (json.Rated && json.Rated !== 'N/A') {
-				movieInfo += `[B]Rating: [/B] ${json.Rated}\n`;
-			}
-			if (json.Genre && json.Genre !== 'N/A') {
-				movieInfo += `[*][B]Genre: [/B] ${json.Genre}\n`;
-			}
-			if (json.Director && json.Director !== 'N/A') {
-				movieInfo += `[*][B]Directed By: [/B] ${json.Director}\n`;
-			}
-			if (json.Writer && json.Writer !== 'N/A') {
-				movieInfo += `[*][B]Written By: [/B] ${json.Writer}\n`;
-			}
-			if (json.Actors && json.Actors !== 'N/A') {
-				movieInfo += `[*][B]Starring: [/B] ${json.Actors}\n`;
-			}
-			if (json.Released && json.Released !== 'N/A') {
-				movieInfo += `[*][B]Release Date: [/B] ${json.Released}\n`;
-			}
-			if (json.Runtime && json.Runtime !== 'N/A') {
-				movieInfo += `[*][B]Runtime: [/B] ${json.Runtime}\n`;
-			}
-			if (json.Production && json.Production !== 'N/A') {
-				movieInfo += `[*][B]Production: [/B] ${json.Production}\n`;
-			}
-			if (movieInfo) {
-				movieInfo = `\n[hr][/hr][size=200][color=#fac51c][b]Movie Info:[/b][/color][/size]\n\n[LIST][*]${movieInfo}[/LIST]\n`;
-			}
-			let premadeTitle = titleBool
-				? `${titlePrefix} ${json.Title} (${json.Year})`
-				: '';
-			if (titleBool && mediainfo) {
-				premadeTitle = ParseMediaInfo(mediainfo, premadeTitle);
-			}
-			mediainfo = mediainfo
-				? `[hr][/hr][size=200][color=#fac51c][b]Media Info:[/b][/color][/size]\n\n[mediainfo]${mediainfo}\n[/mediainfo]\n`
-				: '';
-			let downloadLinkBBCode = DownloadLinkHandler(
-				downloadLinks.split(' '),
-				megaDomains
+	screenshots = screenshots
+		? new Parser().screenshots(screenshots.split(' '))
+		: '';
+	const response = await RequestUrl(
+		'GET',
+		`http://www.omdbapi.com/?apikey=${apiKey}&i=${imdbID}&plot=full&y&r=json`
+	);
+	let json = JSON.parse(response.responseText);
+	let poster =
+		json.Poster && json.Poster !== 'N/A'
+			? `[center][img]${json.Poster}[/img]\n`
+			: '';
+	if (json.Title && json.Title !== 'N/A') {
+		var title = `${json.Title}`;
+	} else {
+		alert(
+			"You Messed Up! Check That You've Entered Something Into The IMDB Field!"
+		);
+	}
+	let year = json.Year && json.Year !== 'N/A' ? ` (${json.Year})` : '';
+	let fullName = `[color=#fac51c][b][size=150][url='/search.php?keywords=${imdbID}&sf=titleonly']${title}${year}[/url][/size][/b][/color]\n`;
+	let imdbId =
+		json.imdbID && json.imdbID !== 'N/A'
+			? `[url=https://www.imdb.com/title/${json.imdbID}][img]https://i.imgur.com/rcSipDw.png[/img][/url]`
+			: '';
+	let rating =
+		json.imdbRating && json.imdbRating !== 'N/A'
+			? `[size=150][b]${json.imdbRating}[/b]/10[/size]\n`
+			: '';
+	let imdbvotes =
+		json.imdbVotes && json.imdbVotes !== 'N/A'
+			? `[size=150][img]https://i.imgur.com/sEpKj3O.png[/img]${json.imdbVotes}[/size][/center]\n`
+			: '';
+	let plot =
+		json.Plot && json.Plot !== 'N/A'
+			? `[hr][/hr][size=200][color=#fac51c][b]Plot:[/b][/color][/size]\n\n ${json.Plot}\n`
+			: '';
+	let movieInfo = '';
+	if (json.Rated && json.Rated !== 'N/A') {
+		movieInfo += `[B]Rating: [/B] ${json.Rated}\n`;
+	}
+	if (json.Genre && json.Genre !== 'N/A') {
+		movieInfo += `[*][B]Genre: [/B] ${json.Genre}\n`;
+	}
+	if (json.Director && json.Director !== 'N/A') {
+		movieInfo += `[*][B]Directed By: [/B] ${json.Director}\n`;
+	}
+	if (json.Writer && json.Writer !== 'N/A') {
+		movieInfo += `[*][B]Written By: [/B] ${json.Writer}\n`;
+	}
+	if (json.Actors && json.Actors !== 'N/A') {
+		movieInfo += `[*][B]Starring: [/B] ${json.Actors}\n`;
+	}
+	if (json.Released && json.Released !== 'N/A') {
+		movieInfo += `[*][B]Release Date: [/B] ${json.Released}\n`;
+	}
+	if (json.Runtime && json.Runtime !== 'N/A') {
+		movieInfo += `[*][B]Runtime: [/B] ${json.Runtime}\n`;
+	}
+	if (json.Production && json.Production !== 'N/A') {
+		movieInfo += `[*][B]Production: [/B] ${json.Production}\n`;
+	}
+	if (movieInfo) {
+		movieInfo = `\n[hr][/hr][size=200][color=#fac51c][b]Movie Info:[/b][/color][/size]\n\n[LIST][*]${movieInfo}[/LIST]\n`;
+	}
+	let premadeTitle = titleBool
+		? `${titlePrefix} ${json.Title} (${json.Year})`
+		: '';
+	if (titleBool && mediainfo) {
+		premadeTitle = new Parser().mediaInfo(mediainfo, premadeTitle);
+	}
+	mediainfo = mediainfo
+		? `[hr][/hr][size=200][color=#fac51c][b]Media Info:[/b][/color][/size]\n\n[mediainfo]${mediainfo}\n[/mediainfo]\n`
+		: '';
+	let downloadLinkBBCode = new Parser().downloadLinks(
+		downloadLinks.split(' '),
+		megaDomains
+	);
+	let forumBBCode = `${poster}${fullName}${imdbId}${rating}${imdbvotes}${plot}${screenshots}${movieInfo}${mediainfo}${downloadLinkBBCode}`;
+	SubmitToForum(forumBBCode, premadeTitle, titleBool);
+};
+
+function Main() {
+	GM.getValue('APIKEY', 'foo').then((apiKey) => {
+		const htmlpush = document.getElementsByTagName('dl')[0];
+		if (apiKey !== 'foo') {
+			htmlpush.insertAdjacentHTML('afterend', htmlTemplate);
+		} else {
+			htmlpush.insertAdjacentHTML('afterend', omdbinput);
+		}
+		document.getElementById('hide-template').addEventListener(
+			'click',
+			() => {
+				HideTemplate();
+			},
+			false
+		);
+		document.getElementById('show-template').addEventListener(
+			'click',
+			() => {
+				ShowTemplate();
+			},
+			false
+		);
+		if (apiKey !== 'foo') {
+			SectionSearch(apiKey);
+			document.getElementById('generate-template').addEventListener(
+				'click',
+				() => {
+					GenerateTemplate(apiKey);
+				},
+				false
 			);
-			let forumBBCode = `${poster}${fullName}${imdbId}${rating}${imdbvotes}${plot}${screenshots}${movieInfo}${mediainfo}${downloadLinkBBCode}`;
-			SubmitToForum(forumBBCode, premadeTitle, titleBool);
-		},
+		} else {
+			document.getElementById('save-key').addEventListener(
+				'click',
+				() => {
+					SaveApiKey();
+				},
+				false
+			);
+		}
 	});
 }
 
@@ -519,3 +536,7 @@ GM_addStyle(`
 	}
 }
 `);
+
+if (!tabURL.includes('preview')) {
+	Main();
+}
