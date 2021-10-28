@@ -119,7 +119,7 @@ const RequestUrl = async (method, url, data, headers) => {
 
 // Check response status from API
 const CheckApiStatus = async (url) => {
-	return RequestUrl(url)
+	return RequestUrl('GET', url)
 		.then(function (response) {
 			if (response.status !== 200) {
 				if (response.status === 401) {
