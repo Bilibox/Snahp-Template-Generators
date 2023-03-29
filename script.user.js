@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        Snahp Movie/TV Template Generator
-// @version     2.0.0
+// @version     2.0.1
 // @description Creates a BBCode template for the Movie/TV section on Snahp forums.
 // @author      BiliTheBox
 // @icon        https://forum.snahp.it/favicon.ico
@@ -409,7 +409,7 @@ const GenerateTemplate = async (apiKey) => {
 		);
 	}
 	let year = json.Year && json.Year !== 'N/A' ? ` (${json.Year})` : '';
-	let fullName = `[color=#fac51c][b][size=150][url='/search.php?keywords=${imdbID}&sf=titleonly']${title}${year}[/url][/size][/b][/color]\n`;
+	let fullName = `[b][size=150][url='/search.php?keywords=${imdbID}&sf=titleonly']${title}${year}[/url][/size][/b]\n`;
 	let imdbId =
 		json.imdbID && json.imdbID !== 'N/A'
 			? `[url=https://www.imdb.com/title/${json.imdbID}][img]https://i.imgur.com/rcSipDw.png[/img][/url]`
